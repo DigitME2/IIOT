@@ -8,5 +8,4 @@ __pycache__
 /.mypy_cache/
 test_app.py
 test_selenium.py
-iiot_kafka.py
 app/testdb.sqlite
