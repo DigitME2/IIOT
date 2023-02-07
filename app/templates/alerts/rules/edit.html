@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block content %}
+<form class="form-inline" method='post' action='{{url_for("main_blueprint.edit_rule", id=rule.id )}}'>
+    <div class="form-group">
+        <label for='address' >Address: </label>
+        <select name="select_topic_options" id="select_topic_options" disabled>
+            <option data-id="{{rule.id}}" value="{{rule.address}}">{{rule.address}}</option>
+        </select>
+    </div>
+    <div class='form-group'>
+      <label for='column' >Column: </label>
+      <select name="column" id="column" disabled>
+        {% if rule.column %}
+          <option value="{{ rule.column }}" selected>{{ rule.column }}</option>
+        {% else %}
+          
+        {% endif %}
+      </select>
+    </div>
+    <div class='form-group'>
+      <label for='active' >Active: </label>
+      {% if rule.active %}
+      <input id='active' type='checkbox' name='active' checked>
+      {% else %}
+      <input id='active' type='checkbox' name='active'>
+    {% endif %}
+  </div>
+  <div class='form-group'>
+    <label for='raised' >Raised: </label>
+    {% if rule.raised %}
+    <input id='raised' type='checkbox' name='raised' checked>
+    {% else %}
+    <input id='raised' type='checkbox' name='raised'>
+  {% endif %}
+</div>
+    <div class='form-group'>
+      <label for='notify_by_email' >Notify by email: </label>
+      {% if rule.notify_by_email %}
+      <input id='notify_by_email' type='checkbox' name='notify_by_email' checked>
+      {% else %}
+      <input id='notify_by_email' type='checkbox' name='notify_by_email'>
+      {% endif %}
+    </div>
+    <div class='form-group'>
+      <label for='email'>Email: </label>
+      {% if rule.email %}
+      <input id='email' type='text' minlength="3" maxlength="320" size="32" name='email' value="{{ rule.email }}">
+      {% else %}
+      <input id='email' type='text' minlength="3" maxlength="320" size="32" name='email' value="">
+      {% endif %}
+    </div>
+    <div class='form-group'>
+      <label for='email_cooldown'>Email cooldown: </label>
+      <input id='email_cooldown' type='number' name='email_cooldown' min="0" value='{{ rule.email_cooldown }}'>
+    </div>
+    <div class="form-group">
+        <label for='comp_operators'>Rule: </label>
+        <select name="select_comp_operators" id="select_comp_operators">
+            {% for s in comp_operators %}
+            {% if rule.rule == s.op %}
+            <option data-id="{{s.id}}" data-columns="{{ s.op }}" selected value="{{s.op}}">{{s.op}}</option>
+            {% else %}
+            <option data-id="{{s.id}}" data-columns="{{ s.op }}" value="{{s.op}}">{{s.op}}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        <label for='rule_value'></label>
+        <input id='rule_value' type='number' name='rule_value' value="{{ rule.rule_value }}" step="0.001">
+    </div>
+    <div class='form-group' style="display: none;">
+        <label for='function'>Apply Function: </label>
+        <input type='checkbox' id='checkbox_fn' name="checkbox_fn">
+    </div>
+    <div class="form-group" id='functions' style="display: none;">
+        <label for='func_operator'>Function: </label>
+        <select name="func" id="func">
+            {% for s in alert_functions %}
+            <option data-id="{{s.id}}" data-columns="{{ s.op }}" value="{{s.op}}">{{s.op}}</option>
+            {% endfor %}
+        </select>
+        <input type='radio' name='func_time' value=1 checked>Last N rows
+        <input type='radio' name='func_time' value=0 >Last N seconds
+        <input type='number' name='func_time_n' id='func_time_n' min='2' max='1000' value='2'>
+    </div>
+    <input type="submit" value="Set">
+    <div class="float-end px-2">
+      <a class='btn-sm btn-danger px-2' href="{{ url_for('main_blueprint.delete_rule', id=rule.id) }}">DELETE</a>
+    </div>
+</form>
+{% endblock %}

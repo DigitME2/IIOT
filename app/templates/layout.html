@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ title }}</title>
+  <script type='text/javascript' src="{{url_for('static', filename='jquery.min.js')}}" ></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='slate/bootstrap.css')}}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='slate/bootstrap.min.css')}}">
+  <script type='text/javascript' src="{{url_for('static', filename='bootstrap.min.js')}}" ></script>
+  <script type='text/javascript' src="{{url_for('static', filename='socket.io.js')}}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='table.css') }}">
+</head>
+
+<body class="{{template}}">
+  <nav class="navbar navbar-expand-lg navbar-new-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{{url_for('main_blueprint.home')}}">
+        <img src="{{ url_for('static', filename='dist/img/uclan-logo-2020.png') }}" alt="" class="logo" width="80" height="35">
+        <span id="page_title">{{title}}</span>
+      </a>
+      <ul class="nav navbar-nav">
+        {% if request.url_rule.endpoint != 'main_blueprint.home' %}
+        <li class="nav-item">
+          {% else %}
+        <li class="nav-item active">
+          {% endif %}
+          <a class="nav-link active" href={{ url_for('main_blueprint.home') }}>Home</a>
+        </li>
+
+        {% if request.url_rule.endpoint != 'main_blueprint.get_all_rules' %}
+        <li class="nav-item">
+          {% else %}
+        <li class="nav-item active">
+          {% endif %}
+          <a class="nav-link active" href={{ url_for('main_blueprint.get_all_rules') }}>Alerts</a>
+        </li>
+        
+        {% if request.url_rule.endpoint == 'main_blueprint.get_static_graph' or request.url_rule.endpoint == 'main_blueprint.get_dash' %}
+          <div class="nav-link-parent active dropdown">
+        {% else %}
+          <div class="nav-item dropdown">
+        {% endif %}
+            <li class="nav-link dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown"
+              aria-expanded="false">
+              Visualisation
+            </li>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+              {% if request.url_rule.endpoint != 'main_blueprint.get_static_graph' %}
+              <li class="nav-item">
+                {% else %}
+              <li class="nav-item active">
+                {% endif %}
+                <a class="nav-link" href={{ url_for('main_blueprint.get_static_graph') }}>Static Graph</a>
+              </li>
+
+              {% if request.url_rule.endpoint != 'main_blueprint.get_dash' %}
+              <li class="nav-item">
+              {% else %}
+              <li class="nav-item active">
+              {% endif %}
+                <a class="nav-link" href="/dash/">Real-Time Graph</a>
+              </li>
+            </ul>
+          </div>
+
+          {% if request.url_rule.endpoint != 'main_blueprint.get_all_subs' %}
+          <li class="nav-item">
+            {% else %}
+          <li class="nav-item active">
+            {% endif %}
+            <a class="nav-link active" href={{url_for('main_blueprint.get_all_subs')}}>Topic Subscriptions</a>
+          </li>
+
+          {% if request.url_rule.endpoint != 'main_blueprint.get_topics' %}
+          <li class="nav-item">
+            {% else %}
+          <li class="nav-item active">
+            {% endif %}
+            <a class="nav-link active" href={{url_for('main_blueprint.get_topics')}}>MQTT Data</a>
+          </li>
+      </ul>
+    </div>
+  </nav>
+
+  {% import "macros.html" as macros %}
+  {% block content %}{% endblock %}
+  {% block flash_messages %}
+  {%- with messages = get_flashed_messages(with_categories=true) -%}
+  {% if messages %}
+  <div class='flash_messages'>
+    {% for category, message in messages %}
+    {% if category=='error' %}
+    {% set category='danger' %}
+    {% endif %}
+    <div class="alert alert-{{category}}">{{ message|safe }}</div>
+    {% endfor %}
+    {% endif %}
+    {%- endwith %}
+  </div>
+  {% endblock %}
+  <script>
+    $(function () {
+      $('.dropdown').hover(function () {
+        $(this).find('.dropdown-menu').addClass('show');
+      },
+        function () {
+          $(this).find('.dropdown-menu').removeClass('show');
+        });
+    });
+  </script>
+</body>
+</html>

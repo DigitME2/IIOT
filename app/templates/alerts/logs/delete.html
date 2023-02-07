@@ -1,0 +1,7 @@
+{% block content %}
+<form action='' method="post">
+    Click YES to confirm to delete Log #{{log.id}}:{{log.message}}
+    <input type = "submit" value="YES">
+    <a href={{url_for("main_blueprint.home")}}>Cancel</a>
+</form>
+{% endblock %}

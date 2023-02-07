@@ -1,0 +1,490 @@
+{% extends "layout.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='table.css') }}">
+<div class="container-fluid">
+  <div class='col-lg'>
+    <hr>
+    <h3>{{ title }}</h3>
+    <hr>
+    <div id="loader" class="loader" style="position: absolute;
+    left: 50%;
+    margin-left: -30px;
+    margin-bottom: -30px;
+    bottom: 50%; display: none;"></div>
+    <hr>
+    <div class='col-lg'>
+      <div class="row align-items-start">
+        <div class="container">
+          <div class="row align-items-start">
+            <div class="col">
+              Devices
+            </div>
+            <div class="col">
+              <button id='button_refresh'>Refresh</button>
+            </div>
+            <div class="col">
+            </div>
+          </div>
+            <div id="table"></div>
+        </div>
+      <table style='width: 25%; display: none'>
+        <thead>
+          <tr>
+            <th id="thead_id">ID</th>
+            <th id="thead_address">Address</th>
+            <th id="thead_columns">Columns</th>
+            <th id="thead_subscribe">Subscribe</th>
+            <th id="thead_data_type">Data type</th>
+            <th id="thead_date_added">Date Added</th>
+            <th id="thead_udated_on">Updated On</th>
+            <th id="thead_logs">Logs</th>
+            <th id="thead_action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subs %}
+            {% if sub.deleted %}
+              <tr style="background: red; opacity: 0.25" class="sub_deleted">
+            {% else %}
+              <tr class="sub_valid">
+            {% endif %}
+            <td>{{ sub.id }}</td>
+            {% if sub.deleted %}
+              <td class="sub_address_deleted">{{ sub.address }}</td>
+            {% else %}
+              <td class="sub_address">{{ sub.address }}</td>
+            {% endif %}
+            <td>{{ sub.columns or ""}}</td>
+            <td><a href="{{ url_for('main_blueprint.switch_subscription_sub', id=sub.id)}}">{{ sub.subscribe }}</a></td>
+            <td>{{ sub.data_type }} </td>
+            <td>{{ sub.created_on }}</td>
+            <td>{{ sub.updated_on }}</td>
+            <td><a href="{{ url_for('main_blueprint.get_sub_mqtt_logs', id=sub.id, page=1) }}">View logs</a></td>
+            <td>
+              <a href="{{ url_for('main_blueprint.edit_sub', id=sub.id) }}">Edit</a>
+              <a href="{{ url_for('main_blueprint.get_dash', address=sub.address) }}">Visualise</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+  class Sensor {
+    constructor(columns, calib, data_type, delay, enabled, mqtt, topic, device_id, duplicate, sensor_id) {
+      this.columns = columns;
+      this.calib = calib;
+      this.data_type = data_type;
+      this.delay = delay;
+      this.enabled = enabled;
+      this.mqtt = mqtt;
+      this.topic = topic;
+      this.device_id = device_id;
+      this.duplicate = duplicate;
+      this.sensor_id = sensor_id;
+    }
+
+    toJSONAdd() {
+      console.log(JSON.stringify({
+        columns: this.columns,
+        data_type: MqttDatatypeToString(this.data_type),
+        topic: this.topic
+      }))
+      return JSON.stringify({
+        columns: this.columns,
+        data_type: MqttDatatypeToString(this.data_type),
+        topic: this.topic
+      })
+    }
+
+    toGETParams() {
+      return jQuery.param({
+        columns: this.columns,
+        data_type: MqttDatatypeToString(this.data_type),
+        topic: this.topic
+      });
+    }
+
+    toCalibrate() {
+      return jQuery.param({
+        command: "1",
+        id: this.sensor_id,
+      })
+    }
+
+
+  }
+
+  class Device {
+    constructor(device_id, ip, timestamp, version, rssi, sensors) {
+      this.device_id = device_id;
+      this.ip = ip;
+      this.timestamp = timestamp;
+      this.version = version;
+      this.rssi = rssi
+      this.sensors = sensors;
+    }
+  }
+
+  function isObj(val) {
+    return typeof val === 'object' &&
+      !Array.isArray(val) &&
+      val !== null
+  }
+
+  function isArr(val) {
+    return Array.isArray(val) && val !== null
+  }
+
+  function MqttDatatypeToString(datatype) {
+    switch (datatype) {
+      case 1:
+        return 'single'
+      case 2:
+        return 'json'
+      case 3:
+        return 'json_lab'
+      default: return 'invalid'
+    }
+  }
+
+  function createInputs(csv, id_prefix = "id_prefix_", class_name = "") {
+    let dom = []
+    const valuesArr = csv.split(',');
+    for (let i = 0; i < valuesArr.length; i++) {
+      const input = document.createElement("input");
+      input.id = id_prefix + i.toString();
+      input.dataset.id = i;
+      input.className = class_name;
+      console.log(class_name)
+      input.type = "number";
+      input.value = valuesArr[i];
+      dom.push(input);
+    }
+    return dom;
+  }
+
+  function createSignalBar(percentage, length) {
+    let signalBar = "";
+
+    if (percentage < 0.0 || percentage > 100.0) {
+      console.log("Invalid input. Please enter a percentage value between 0.0 and 100.0.");
+      return percentage;
+    }
+
+    let barValue = (percentage * length) / 100;
+    for (let i = 0; i < barValue; i++) {
+
+      if (Math.floor(barValue) > i) {
+        signalBar += "█";
+      } else {
+        let rest = barValue - Math.floor(barValue)
+        if (rest > 0.34 && rest < 0.66)
+          signalBar += "▒";
+        else if (rest >= 0.66 && rest <= 1.00)
+          signalBar += "▓"
+      }
+    }
+    let fill_gaps = signalBar.length
+    for (let i = 0; i < length - fill_gaps; i++) {
+      signalBar += "░";
+    }
+    return signalBar;
+  }
+
+
+  function getTreeNodes(obj, keyName) {
+    let nodes = Array()
+    for (var x = 0; x < Object.keys(obj).length; x++) {
+      keys = Object.keys(obj)
+      key = keys[x]
+      val = obj[key]
+
+      if (key == keyName) {
+        if (Object.keys(val).length > 0) {
+          ob = [...Object.keys(val).map(key => val[key])]
+          return ob;
+        }
+        else {
+          return val
+        }
+      }
+      else if (key != keyName && (isArr(val) || isObj(val))) {
+        newNodes = getTreeNodes(val, keyName)
+        nodes.push(...newNodes)
+      }
+    }
+    return nodes
+  }
+
+  const CSVToArray = (data, delimiter = ',', omitFirstRow = false) =>
+    data
+      .slice(omitFirstRow ? data.indexOf('\n') + 1 : 0)
+      .split('\n')
+      .map(v => v.split(delimiter));
+
+  // Extracts valid Devices and their sensors from JSON array list
+  function extractSensors(obj, excludedTopics) {
+    // Check if device has all the properties: device_id, ip, sensors (array), timestamp, version
+    let devices = []
+
+    // let device_columns_old = ['device_id', 'sensors', 'timestamp']
+    let device_columns = ['device_id', 'ip', 'sensors', 'timestamp', 'version']
+
+
+    for (var i = 0; i < obj.length; i++) {
+      let sensors = []
+    
+      if (device_columns.every(value => Object.keys(obj[i]).includes(value))) {
+        let device = new Device(obj[i]['device_id'], obj[i]['ip'], obj[i]['timestamp'], obj[i]['version'], obj[i]['rssi'], sensors)
+        // Before creating a new Device object, ensure that the object has valid sensors and properties
+        // let sensor_columns = ['columns', 'delay', 'enabled', 'mqtt', 'topic']
+        let sensor_columns = ['columns', 'data_type', 'delay', 'enabled', 'mqtt', 'topic']
+
+        sensorLoop: for (var v = 0; v < Object.keys(obj[i].sensors).length; v++) {
+          // Check if sensor is already defined, if yes, mark it as duplicate (already defined)
+          let duplicate = false;
+          if (excludedTopics.includes(obj[i].sensors[v].topic)) {
+            duplicate = true;
+          }
+
+          // Ensure that sensor has all the parameters defined, if not skip it.
+          if (sensor_columns.every(value => Object.keys(obj[i].sensors[v]).includes(value))) {
+            console.log(obj[i].sensors[v].topic, 'is valid!')
+            var sensor = new Sensor(obj[i].sensors[v].columns, obj[i].sensors[v].calib, obj[i].sensors[v].data_type,
+              obj[i].sensors[v].delay, obj[i].sensors[v].enabled, obj[i].sensors[v].mqtt,
+              obj[i].sensors[v].topic, obj[i].device_id, duplicate, obj[i].sensors[v].id)
+            sensors.push(sensor)
+          }
+          else {
+            continue sensorLoop
+          }
+        }
+        devices.sensors = sensors
+        devices.push(device)
+      }
+      else {
+        // Skip if device is missing some parameters
+        continue
+      }
+
+    }
+    return devices
+  }
+
+  function interpolateValue(value, sMin, sMax, tMin, tMax) {
+    if (value > sMax)
+      return tMax
+    if (value < sMin)
+      return tMin
+    return (value - sMin) / (sMax - sMin) * (tMax - tMin) + tMin;
+  }
+
+  function parseSensorsToHtml(obj) {
+    console.log("parseSensorsToHtml")
+    console.log(obj)
+    html = "<ul>"
+    for(let i = 0; i< obj.length; i++) {
+      html += "<details open>" + "<summary>" + "Device: " + obj[i].device_id + "</summary>"
+      html += "<ul>" + "IP: " + obj[i].ip + "</ul>"
+      let val = createSignalBar(interpolateValue(obj[i].rssi, -127, 0, 0, 100), 10);
+      html += "<ul>" + "Rssi: " + obj[i].rssi + " " + val + "</ul>"
+      html += "<ul>" + "Timestamp: " + obj[i].timestamp + "</ul>"
+      html += "<ul>" + "Version: " + obj[i].version + "</ul>"
+      
+      console.log("Device: ", i)
+      console.log(obj[i])
+      
+      html += "<ul>"
+      html += "<details open>" + "<summary>Sensors:</summary>"
+      for(let s = 0; s< obj[i].sensors.length; s++) {
+        html += "<ul>"
+        html += "<details open>" + "<summary>"+ s +"</summary>" 
+        
+        
+        // "<ul>" + 'Offset: ' + obj[i].sensors[s].calib + "</ul>"
+        html += "<ul>" + 'Columns: ' + obj[i].sensors[s].columns + "</ul>"
+        if (obj[i].sensors[s].calib == null || obj[i].sensors[s].sensor_id == null) {
+          html += "<ul>" + 'Offset: ' + obj[i].sensors[s].calib + " N/A </ul>"
+        }
+        else {
+          html += "<ul>" + 'Offset: '
+          html += "<ul>"
+          console.log("sensor.calib")
+          console.log(obj[i].sensors[s].calib)
+          let calib_array = obj[i].sensors[s].calib.split(',').map(v => Number(v).toFixed(4))
+          let calib_names = JSON.parse(obj[i].sensors[s].columns)
+          console.log(obj[i].sensors[s].columns)
+          console.log(calib_array)
+          for (var c = 0; c < calib_array.length; c++) {
+            html += `<div>${calib_names[c]}`
+            html += `<div><input type='number' class="${obj[i].sensors[s].sensor_id}" min='-999999' max='999999' step='0.0001' value="${calib_array[c]}" oninput="generateOffsetURL(this)" onchange="generateOffsetURL(this)"></div>`;
+            html += "</div>"
+          }
+          html += `<div><a hidden class="${obj[i].sensors[s].sensor_id}" data-device="${obj[i].sensors[s].device_id}" data-url='{{url_for('main_blueprint.send_mqtt_message')}}' href='{{url_for('main_blueprint.send_mqtt_message')}}?${obj[i].sensors[s].toGETParams()}'> Set offset</a></div></ul>`
+          html += "</ul>"
+        }
+          html += "<ul>" + 'Data type: ' + MqttDatatypeToString(obj[i].sensors[s].data_type) + "</ul>"
+          + "<ul>" + 'Delay: ' + obj[i].sensors[s].delay + "</ul>"
+          + "<ul>" + 'Enabled: ' + obj[i].sensors[s].enabled + "</ul>"
+          + "<ul>" + 'MQTT: ' + obj[i].sensors[s].mqtt + "</ul>"
+          + "<ul>" + 'Sensor ID: ' + obj[i].sensors[s].sensor_id + "</ul>"
+          + "<ul>" + 'Topic: ' + obj[i].sensors[s].topic + "</ul>"
+          if (obj[i].sensors[s].duplicate == false) {
+            html += `<ul><a href='{{url_for('main_blueprint.get_all_subs')}}?${obj[i].sensors[s].toGETParams()}'>Click to add sensor</a></ul>`
+          }
+          else{
+          }
+          html += "</details>";
+          
+        html += "</ul>"
+      }
+      html += "</ul>"
+      html += "</details>"
+      html += "</details>"
+    }
+   
+    html += "</ul>"
+    return html
+  }
+
+  function generateOffsetURL(e) {
+    console.log(e);
+    sibling_a = $("a." + e.className)[0]
+    sibling_a.removeAttribute("hidden");
+    console.log(sibling_a)
+
+    inputs = $("input[type=number]." + e.className)
+    main_url = sibling_a.dataset.url
+    device_id = sibling_a.dataset.device
+    console.log(main_url)
+
+    values = []
+    for (let i = 0; i < inputs.length; i++) {
+      values.push(parseFloat(inputs[i].value))
+    }
+
+    console.log(values)
+
+    const data = {
+      topic: "esp32config/" + device_id,
+      message: JSON.stringify({
+        command: "1",
+        hash: e.className,
+        values: values
+      })
+    };
+
+    const urlSearchParams = new URLSearchParams(data);
+    const url = main_url + '?' + urlSearchParams
+
+    sibling_a.href = url
+  }
+
+  function parseTreeToHtmlList(obj, vs) {
+    html = ""
+
+    for (var x = 0; x < Object.keys(obj).length; x++) {
+      keys = Object.keys(obj)
+      val = obj[keys[x]]
+      if (keys[x] == 'data_type' && val >= 1 && val <= 3) {
+        val = MqttDatatypeToString(val)
+      }
+      if (keys[x] == 'rssi') {
+        let sb = createSignalBar(interpolateValue(val, -127, 0, 0, 100), 10)
+        val = val + createSignalBar(interpolateValue(val, -127, 0, 0, 100), 10);
+      }
+      if (isArr(val) || isObj(val)) {
+        if (keys[x] == 'asdfg') {
+          html += parseSensorsToHtml(vs);
+        }
+        else {
+          html += "<details open>" + "<summary>" + keys[x] + "</summary>"
+          html += "<ol class='r' >"
+          html += parseTreeToHtmlList(val, vs);
+          html += "</ol>"
+          html += "</details>"
+        }
+
+      } else {
+        html += "<li>" + keys[x] + ":" + val + "</li>"
+      }
+    }
+    html += ""
+    return html
+  }
+
+  $('body').off().on('click', 'snap.collapsable', function () {
+    event.stopImmediatePropagation();
+    $(this).toggleClass("expanded")
+    if ($(this).hasClass('expanded')) {
+      $(this).text(' [-]')
+    }
+    else {
+      $(this).text(' [+]')
+    }
+    $(this).siblings('ol.r').toggleClass("d-none")
+  })
+
+  $('#button_refresh').click(function () {
+    document.getElementById('loader').style.display = '';
+    document.getElementById('button_refresh').disabled = true;
+    document.getElementById('table').innerHTML = "";
+
+    requestDevices('devices/get', { refresh: true }).then((data) => {
+      document.getElementById('button_refresh').disabled = false;
+      document.getElementById('loader').style.display = 'none';
+
+      var html = "";
+
+      if (!data || data.length == 0) {
+        html = "<p>No devices found.</p>";
+        document.getElementById('table').innerHTML = html;
+        return false
+      }
+      console.log('data');
+      console.log(data);
+
+      topicsArray = Array.from(document.getElementsByClassName('sub_address')).map(s => s.innerText);
+      console.log("topicsArray")
+      console.log(topicsArray)
+
+      valid_sensors = extractSensors(data, topicsArray);
+      console.log('valid_sensors')
+      console.log(valid_sensors)
+
+      
+      html = parseSensorsToHtml(valid_sensors)
+      // html = parseTreeToHtmlList(data, valid_sensors)
+      document.getElementById('table').innerHTML = html;
+
+      // html2 = parseSensorsToHtml(valid_sensors);
+      // document.getElementById('table2').innerHTML = html2
+
+    }).catch((error) => {
+      console.log(error);
+      document.getElementById('button_refresh').disabled = false;
+      document.getElementById('loader').style.display = 'none';
+    })
+  })
+
+  async function requestDevices(url = '', data = {}) {
+    const response = await fetch(url, {
+      method: 'POST',
+      cache: 'no-cache',
+      credentials: 'same-origin',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      redirect: 'follow',
+      referrerPolicy: 'no-referrer',
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  }
+
+</script>
+{% endblock %}

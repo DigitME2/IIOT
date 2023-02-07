@@ -1,0 +1,166 @@
+{% extends "layout.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='table.css') }}">
+<div class="container-fluid">
+  {% if not subs%}
+  <a style="float: right" href="{{ url_for('main_blueprint.get_devices') }}">Auto Discover</a>
+  <p id='no_notifications' class="lead">No Subscriptions defined</p>
+  {% else %}
+  <div class='col-lg'>
+    <hr>
+    <div>
+      <div class="row align-items-start">
+        <div class="col">
+    <h3>Topic Subscriptions (MQTT)</h3>
+  </div>
+  <div class="row">
+  <div class="col-sm">
+    <div>
+      <span for="checkbox_show_deleted">Show deleted: </span><input type="checkbox" id="checkbox_show_deleted" name="checkbox_show_deleted" checked>
+    </div>
+    <div>
+      <a href="{{ url_for('main_blueprint.get_devices') }}">Auto Discover</a>
+    </div>
+  </div>
+</div>
+  </div>
+    <hr>
+    <table style='width: 100%'>
+      <thead>
+        <tr>
+          <th id="thead_id">ID</th>
+          <th id="thead_address">Address</th>
+          <th id="thead_columns">Columns</th>
+          <th id="thead_subscribe">Subscribe</th>
+          <th id="thead_data_type">Data type</th>
+          <th id="thead_date_added">Date Added</th>
+          <th id="thead_udated_on">Updated On</th>
+          <th id="thead_logs">Logs</th>
+          <th id="thead_action">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in subs %}
+        {% if sub.deleted %}
+          <tr style="background: red; opacity: 0.25; display: none" class="sub_deleted">
+        {% else %}
+          <tr class="sub_valid">
+        {% endif %}
+          <td class="sub_id">{{ sub.id }}</td>
+        {% if sub.deleted %}
+          <td class="sub_address_deleted">{{ sub.address }}</td>
+        {% else %}
+          <td class="sub_address">{{ sub.address }}</td>
+        {% endif %}
+          <td class="sub_columns">{{ sub.columns or ""}}</td>
+          {% if sub.deleted %}
+          <td><snap class="subscribe_link" href="{{ url_for('main_blueprint.switch_subscription_sub', id=sub.id)}}">DELETED</snap></td>
+          {% else %}
+          <td><a class="subscribe_link" href="{{ url_for('main_blueprint.switch_subscription_sub', id=sub.id)}}">{{ sub.subscribe }}</a></td>
+          {% endif %}
+          <td class="sub_data_type">{{ sub.data_type }} </td>
+          <td class="sub_created_on">{{ sub.created_on }}</td>
+          <td class="sub_updated_on">{{ sub.updated_on }}</td>
+          <td><a class="sub_view_logs" href="{{ url_for('main_blueprint.get_sub_mqtt_logs', id=sub.id, page=1) }}">View logs</a></td>
+          <td class="sub_actions">
+            <a class="sub_action_edit_sub" href="{{ url_for('main_blueprint.edit_sub', id=sub.id) }}">Edit</a>
+            <a class="sub_action_visualise" href="{{ url_for('main_blueprint.get_dash', address=sub.address, id=sub.id) }}">Visualise</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <div>
+    <hr>
+    <h5>Add Subscription</h5>
+    <hr>
+  </div>
+  <form class="form-inline" method='post' action='{{url_for("main_blueprint.get_all_subs")}}'>
+    <div class='form-group'>
+      <fieldset>
+        <label for='address'
+          title="Topic is also known as address. It is used to identify sensor. Do not use esp32config/# or add any special characters (especially # or $).">Topic
+          name: </label>
+        <input id='address' type='text' name='address' pattern="^(\d|\w|\/)+$"
+          title="Must only contain letters and numbers (no special characters except forward slash and no spaces)">
+      </fieldset>
+    </div>
+    <div class="form-group">
+      <label title="Data type sent by sensor.">Data type: </label>
+      <select name="select_data_types" id="select_data_types">
+        {% for s in select_data_types %}
+        {% if s.data_type != 'csv' %}
+        <option id="select_data_type_value_{{s.data_type}}" value="{{s.data_type}}">{{s.data_type}}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label id="label_columns" hidden title="Add column names if sesnor sends multi-column data.">Columns: </label>
+      <input id="columns" type="text" name="columns" placeholder='["Temp", "Pressure"]' pattern='^\["\w+"(?:,\s*"\w+")*\]|^\[""\]|\[\]$' hidden>
+    </div>
+    <input type='submit' value='Submit' class='btn btn-primary'>
+  </form>
+  <script>
+    $(document).ready(function () {
+      let checkbox_show_deleted = document.getElementById('checkbox_show_deleted');
+      if(checkbox_show_deleted.checked)
+      {
+        $('.sub_deleted').show();
+      }
+      else
+      {
+        $('.sub_deleted').hide();
+      }
+      $('#select_data_types').change()
+      defined_addresses = Array.from(document.getElementsByClassName('sub_address')).map(s => s.innerText);
+
+    })
+
+    $('#checkbox_show_deleted').change(function () {
+      $('.sub_deleted').toggle();
+    })
+
+    $('#address').on('input', function () {
+
+      // Input pattern validation
+      if (typeof this.reportValidity === 'function') {
+        if (this.reportValidity()) {
+          $('#address').css('border-color', 'green');
+        }
+        else {
+          $('#address').css('border-color', 'red');
+        }
+      }
+      // Empty input
+      if ($('#address').val() == "") {
+        $('#address').css('border-color', '');
+      }
+      else if (defined_addresses.includes($('#address').val())) // Duplicate address found
+      {
+        $('#address').css('border-color', 'red');
+        console.log('Address already exists!');
+      }
+    })
+
+    $('#select_data_types').on('change', function (e) {
+      console.log(this.value)
+      if (this.value == 'single') {
+        $('#columns').attr({ readonly: true, hidden: true });
+        $('#label_columns').attr({ readonly: true, hidden: true });
+        $('#columns').val('')
+      }
+      else if (this.value == 'json_lab') {
+        $('#columns').attr({ readonly: true, hidden: false });
+        $('#label_columns').attr({ readonly: false, hidden: false });
+        $('#columns').val('["moduleName","messageID","airHum","airTemp","analogueChannelCount","analogueChannels"]')
+      } else {
+        $('#columns').attr({ readonly: false, hidden: false });
+        $('#label_columns').attr({ readonly: false, hidden: false });
+        $('#columns').val('')
+      }
+    })
+  </script>
+  {% endblock %}

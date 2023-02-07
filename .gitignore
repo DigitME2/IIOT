@@ -1,0 +1,12 @@
+/venv/
+/.vscode/
+/documentation/
+/instance/
+/logs/
+__pycache__
+/scripts/
+/.mypy_cache/
+test_app.py
+test_selenium.py
+iiot_kafka.py
+app/testdb.sqlite

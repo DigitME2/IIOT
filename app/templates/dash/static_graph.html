@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+{% block content %}
+<label for="date_from">Date from:</label>
+<input type="date" name="date_from" id="date_from" disabled>
+<label for="date_to">Date to:</label>
+<input type="date" name="date_to" id="date_to" disabled>
+<script src="{{url_for('static', filename='plotly-2.12.1.min.js')}}"></script>
+<form class="form" id="form" method='POST' action='{{ url_for("main_blueprint.get_static_graph") }}'>
+    <div class="form-group">
+        <label for='address'>Sensor: </label>
+        <select name="sub" id="select_topic_options">
+            {% for s in subs %}
+            <option data-id="{{ s.id }}" value="{{s.address}}">{{s.id}}:{{s.address}}</option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+<input type="button" name="submit" id="btn_plot" value="Plot">
+<input type="button" name="submit" id="btn_to_csv" value="To CSV">
+<div id='myDiv'></div>
+<script>
+    $(document).ready(function (e) {
+        const urlSearchParams = new URLSearchParams(window.location.search);
+        const params = Object.fromEntries(urlSearchParams.entries());
+        if (params['plot']) {
+        }
+        if (params['date_from']) {
+            $('#date_from').val(params['date_from'])
+        }
+        if (params['date_to']) {
+            $('#date_to').val(params['date_to'])
+        }
+        // TODO: remove address? It will be replaced by ID
+        if (params['address']) {
+            $('#select_topic_options').val(params['address'])
+        }
+        if (params['id']) {
+            // TODO: Select topic options by ID 
+            $("#select_topic_options option[data-id='" + params['id'] + "']").prop("selected", true);
+        }
+        $('#select_topic_options').change()
+
+    })
+
+    $('#btn_plot').click(function (e) {
+        date_from = $('#date_from').val()
+        date_to = $('#date_to').val()
+        address = $('#select_topic_options').val()
+        id = $('#select_topic_options').find(":selected").data( "id" );
+        
+        const data = {
+            date_from: date_from,
+            date_to: date_to,
+            plot: true,
+            address: address,
+            id: id
+        };
+        const searchParams = new URLSearchParams(data);
+
+        window.location.replace("/vis?" + searchParams.toString());
+    })
+
+    $('#btn_to_csv').click(function (e) {
+        date_from = $('#date_from').val()
+        date_to = $('#date_to').val()
+        address = $('#select_topic_options').val()
+        topic_id = $('#select_topic_options').find(":selected").data( "id" );
+
+        $.ajax({
+            url: '/topics/csv/',
+            data: { 'topic_id':topic_id, 'address': address, 'date_from': date_from, 'date_to': date_to },
+            type: "POST",
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function (response) {
+                var url = window.URL.createObjectURL(response);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = address + '_' + date_from + '_' + date_to; 
+                document.body.append(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            }
+
+        })
+    })
+
+    $('#select_topic_options').on('change', function (e) {
+        var form = $(this).closest('form');
+        let id = $('#select_topic_options').find(":selected").data( "id" );
+        $.ajax({
+            url: form.attr('action'),
+            data: {"id":id},
+            type: "POST",
+            success: function (response) {
+                console.log(response)
+
+                if (!('first' in response) && !('last' in response)) {
+                    $('#date_from').attr('disabled', true);
+                    $('#date_to').attr('disabled', true);
+                    $('#btn_plot').attr('disabled', true);
+                    $('#btn_to_csv').attr('disabled', true);
+                    document.getElementById('myDiv').textContent = 'No data to display'
+
+                    return;
+                }
+
+                if (response['first'] == null || response['last'] == null) {
+                    $('#date_from').attr('disabled', true);
+                    $('#date_to').attr('disabled', true);
+                    $('#btn_plot').attr('disabled', true);
+                    $('#btn_to_csv').attr('disabled', true);
+                    document.getElementById('myDiv').textContent = 'No data to display'
+
+                    return;
+                }
+
+                min_date = new Date(response['first']).toISOString().split('T')[0]
+                max_date = new Date(response['last']).toISOString().split('T')[0]
+
+                $('#date_from').attr('min', min_date);
+                $('#date_to').attr('min', min_date);
+
+                $('#date_to').attr('max', max_date);
+                $('#date_from').attr('max', max_date);
+                
+                const urlSearchParams = new URLSearchParams(window.location.search);
+                const params = Object.fromEntries(urlSearchParams.entries());
+                if(params['plot'] && params['date_from'] && params['date_to'] && params['address']) {
+                    if(params['address'] != $('#select_topic_options').val()){
+                        $('#date_to').val(max_date);
+                        $('#date_from').val(max_date);
+                    }
+                }else{
+                    $('#date_to').val(max_date);
+                    $('#date_from').val(max_date);
+                }
+
+                document.getElementById('myDiv').textContent = ''
+                $('#date_from').attr('disabled', false);
+                $('#date_to').attr('disabled', false);
+                $('#btn_plot').attr('disabled', false);
+                $('#btn_to_csv').attr('disabled', false);
+
+                {% if mqtt %}
+                    data = {{ mqtt | safe }};
+                    Plotly.newPlot('myDiv', data, {});
+                {% else %}
+                    data = null;
+                    if(params['plot'])
+                        document.getElementById('myDiv').textContent = 'No data to display'
+                {% endif %}
+
+            },
+    error: function (jqXHR, textStatus, errorThrown) {
+        alert(jqXHR.responseText)
+    }
+        })
+    })
+</script>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "layout.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='table.css') }}">
+<div class="toast-container position-absolute w-100 p-4 d-flex flex-column align-items-end" id="toast-container">
+</div>
+<div class="container-fluid">
+  <div class='event_div' id="notification_div">
+    <hr>
+  <h3 id="h3_title">Alert log</h3>
+  <hr>{% if mylog.items %}
+  <div style="height:300px;overflow:auto;">
+  <table style="height: 100%; width:99%;">
+      <thead>
+      <tr>
+          <th>ID</th>
+          <th>Message</th>
+          <th>Sensor</th>
+          <th>Timestamp</th>
+          <th>Logs</th> 
+          <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody id="tbody_log">
+      {% for log in mylog.items %}
+          <tr>
+              <td>{{ log.id }}</td>
+              <td>{{ log.message }}</td>
+              <td><a href="{{ url_for('main_blueprint.edit_sub', id=log.alert_rule.topic_id) }}">{{ log.alert_rule.topic_id }}:{{ log.address }}</a></td>      
+              <td>{{ log.timestamp }}</td>
+              {% if log.alert_rule.id %}
+                <td><a href="{{ url_for('main_blueprint.get_notification_logs', id=log.alert_rule.id, page=1) }}">View logs for alert #{{ log.notification_alert_id }}</a></td>
+              {% else %}
+                <td><a href="">Deleted</a></td>
+              {% endif %}
+              <td>
+                <a class='btn-sm btn-danger px-2' href="{{ url_for('main_blueprint.delete_log', id=log.id) }}">DELETE</a>
+              </td>
+            </tr>
+      {% endfor %}
+      </tbody>
+  </table>
+  </div>
+  {{ macros.paginate_macro(mylog, 'main_blueprint.home')}}
+  {% else %}
+  <p id='no_notifications' class="lead">No Alert logs</p>
+  {% endif %}
+  </div>
+  <div class='sensors_div'>
+    <hr>
+  <h4>Sensors</h4>
+  <hr><table>
+    <thead>
+      <tr>
+        <th>Number of active sensors</th>
+        <th>Number of inactive sensors</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{active_sensors}}</td>
+        <td>{{inactive_sensors}}</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+  
+
+
+
+<script>
+
+function createNotificationToast(notification){
+  row_html = `${notification.id}
+    ${notification.message}
+    ${notification.address}
+    ${notification.timestamp}`
+
+    
+    var newToastHTML = `
+    <div class="toast fade show" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto"><i class="bi-globe"></i>${notification.address} Alert!</strong>
+            <small>${notification.timestamp}</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${notification.message}
+        </div>
+    </div>
+  `
+  var $elements = $(newToastHTML);
+
+  $elements.on('hidden.bs.toast', function()
+  {
+    $elements.remove();
+  })
+
+  var tce = $('#toast-container').append($elements);
+
+  setTimeout(function(){
+    $($elements).remove();
+}, 3*60*60*1000);
+}
+
+var socket = io();
+
+socket.on('notification', function(msg) {
+    console.log('Received socket message: ');
+    console.log(msg);
+
+    createNotificationToast(msg);
+    
+    row_html = `<tr>
+    <td>${msg.id}</td>
+    <td>${msg.message}</td>
+    <td><a href="/subs/${msg.topic_id}/edit">${msg.topic_id}:${msg.address}</a></td>
+    <td>${msg.timestamp}</td>
+    <td><a href="${msg.url}">View logs for alert ${msg.rule_id}</a></td>
+    <td>
+      <a class='btn-sm btn-danger px-2' href="/log/${msg.id}/delete">DELETE</a>
+    </td>
+    </tr>`
+
+    if($('#tbody_log').length)
+    {
+      $('#tbody_log').prepend(row_html);
+    }
+    else
+    {
+      table_html = `<div style="height:300px;overflow:auto;">
+        <table style="height: 100%; width:99%;">
+          <thead>
+          <tr>
+              <th>ID</th>
+              <th>Message</th>
+              <th>Sensor</th>
+              <th>Timestamp</th>
+              <th>Alert</th> 
+          </tr>
+          </thead>
+          <tbody id="tbody_log">
+            ${row_html}
+          </tbody>
+      </table>
+      </div>`
+        $('#no_notifications').remove();
+        $('#notification_div').append(table_html);
+      }
+})
+
+</script>
+{% endblock %}

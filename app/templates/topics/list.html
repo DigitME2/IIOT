@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='table.css') }}">
+<div class="container-fluid">
+
+{% if not topics%}
+<p id='no_notifications' class="lead">No MQTT Data available</p>
+{% else %}
+<hr>
+<h3>{{ title }}</h3>
+<hr>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Topic ID</th>
+        <th>Topic</th>
+        <th>Value</th>
+        <th>Timestamp</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for topic in topics.items %}
+    <tr>
+        <td>{{ topic.id }}</td>
+        <td><a href="{{ url_for('main_blueprint.edit_sub', id=topic.topic_id) }}">{{ topic.topic_id }}</a></td>
+        <td><a href="{{ url_for('main_blueprint.edit_sub', id=topic.topic_id) }}">{{ topic.topic }}</a></td>            
+        <td>{{ topic.value }}</td>
+        <td>{{ topic.timestamp }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+    
+    {# {% if topics.has_prev %}
+        <a href="{{ url_for('main_blueprint.get_topics', page=1) }}">&laquo; first</a>
+        <a href="{{ url_for('main_blueprint.get_topics', page=topics.prev_num) }}">{{topics.prev_num}}</a>
+    {% else %}
+
+    {% endif %} | 
+    {% if topics.has_next %}
+        <a href="{{ url_for('main_blueprint.get_topics', page=topics.next_num) }}">{{topics.next_num}}</a>
+        <a href="{{ url_for('main_blueprint.get_topics', page=topics.pages) }}">last &raquo;</a>
+    {% else %}
+
+    {% endif %} #}
+    
+    {% if id %}
+       {{ macros.paginate_macro_params(topics, 'main_blueprint.get_sub_mqtt_logs', id)}}
+    {% else %}
+        {{ macros.paginate_macro(topics, 'main_blueprint.get_topics')}}
+    {% endif %}
+
+{% endif %}
+</div>
+{% endblock %}
+

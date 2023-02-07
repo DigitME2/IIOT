@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% block content %}
+<form class="form-inline" method='post' action='{{url_for("main_blueprint.edit_sub", id=subscription.id )}}'>
+    {% if subscription.deleted %}
+    <snap>(Deleted)</snap>
+    {% endif %}
+    <div class="form-group">
+        <label for='topic_id' title="Topic ID">Topic ID: </label>
+        <input type='text' id='topic_id' name='topic_id' value="{{subscription.id}}" disabled>
+    </div>
+    <div class="form-group">
+        <label for='address' title="Topic is also known as address. It is used to identify sensor. Do not use esp32config/# or add any special characters (especially # or $).">Topic name: </label>
+        <input type='text' id='address' name='address' value="{{subscription.address}}" disabled>
+    </div>
+    <div class='form-group'>
+        <label for='column' title="Add column names if sesnor sends multi-column data.">Columns: </label>
+        <input type='text' id='column' name='column' value="{{subscription.columns}}" disabled>
+    </div>
+    <div class='form-group'>
+        <label for='subscribe' title="Whether we should listen for the data coming from this sensor.">Subscribe: </label>
+        {% if subscription.subscribe %}
+            {% if subscription.deleted %}
+            <input id='subscribe' type='checkbox' name='subscribe' checked disabled>
+            {% else %}
+            <input id='subscribe' type='checkbox' name='subscribe' checked>
+            {% endif %}
+        {% else %}
+            {% if subscription.deleted %}
+            <input id='subscribe' type='checkbox' name='subscribe' disabled>
+            {% else %}
+            <input id='subscribe' type='checkbox' name='subscribe'>
+            {% endif %}
+        {% endif %}
+    </div>
+    <div class='form-group'>
+        <label for='high_freq' title="High frequency data is saved to database in bulk.">High Frequency: </label>
+        {% if subscription.high_freq %}
+        {% if subscription.deleted %}
+        <input id='high_freq' type='checkbox' name='high_freq' checked disabled>
+        {% else %}
+        <input id='high_freq' type='checkbox' name='high_freq' checked>
+        {% endif %}
+        {% else %}
+        {% if subscription.deleted %}
+        <input id='high_freq' type='checkbox' name='high_freq' disabled>
+        {% else %}
+        <input id='high_freq' type='checkbox' name='high_freq'>
+        {% endif %}
+        {% endif %}
+    </div>    
+    <div class='form-group'>
+        <label for='data_type' title="Data type sent by sensor.">Data Type: </label>
+        <input id='data_type' name='data_type' type="text" value="{{subscription.data_type}}" disabled>
+    </div>
+    {% if subscription.deleted %}
+    <div class="float-end px-2">
+    </div>  
+    {% else %} 
+    <input type="submit" value="Set">
+    <div class="float-end px-2">
+        <a class='btn-sm btn-danger px-2' href="{{ url_for('main_blueprint.delete_sub', id=subscription.id) }}">DELETE</a>
+    </div>
+    {% endif %}
+</form>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block content %}
+<hr>
+<h3>{{ title }}</h3>
+<div class='form-group'>
+  <hr>
+  <label for='sensor'>Sensor: </label>
+  <select id="topics" >
+    {% for t in topics_graph %}
+    <option value="{{ t.address }}" data-address="{{ t.address }}" data-id="{{ t.id }}" name="{{ t.address }}">{{ t.id }}:{{ t.address }}</option>
+    {% endfor %}
+  </select>
+</div>
+<iframe id="dashapp" src="/dashapp/?{{ request.query_string.decode() }}" style="width:100%;height:100vh;"></iframe>
+<script>
+  $(document).ready(function() {
+    let url = new URL(window.location.href);
+    let param_address = url.searchParams.get("address");
+    let topic_id = url.searchParams.get("id");
+    let topics = document.getElementById("topics");
+    for (var i = 0; i < topics.length; i++) {
+      if (topic_id == topics.options[i].dataset.id)
+      {
+        topics.options[i].selected = 'selected';
+        break;
+      }
+    }
+  })
+
+  $('#topics').on('change', function () {
+    selected_option = $(this).find(':selected')[0]
+    dataset = selected_option.dataset
+
+    var url = new URL(window.location.href);
+    url.searchParams.set("address", dataset.address);
+    url.searchParams.set("id", dataset.id);
+    var newUrl = url.href; 
+
+    window.location = newUrl;
+  })
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% macro paginate_macro(pag_obj, url_for_name)%}
+<div class='pagination' id='pagination_div'>
+    <ul class="pagination justify-content-center">
+    {% for page in pag_obj.iter_pages() %}
+        {% if page %}
+            {% if page == pag_obj.page %}
+                <li class="page-item active"><a class="page-link" href="{{ url_for(url_for_name, page=page) }}">
+                {{ page }}</a></li>
+            {% else %}
+                <li class="page-item"><a class="page-link" href="{{ url_for(url_for_name, page=page) }}">{{ page }}</a>
+                </li>
+            {% endif %}
+        {% else %}
+            <span class="ellipsis" style="white-space; nowrap; overflow: hidden; text-overflow: ellipsis">…</span>
+        {% endif %}
+    {% endfor %}
+    </ul>
+</div>
+{% endmacro %}
+
+{% macro paginate_macro_params(pag_obj, url_for_name, id)%}
+<div class='pagination' id='pagination_div'>
+    <ul class="pagination justify-content-center">
+    {% for page in pag_obj.iter_pages() %}
+        {% if page %}
+            {% if page == pag_obj.page %}
+                <li class="page-item active"><a class="page-link" href="{{ url_for(url_for_name, page=page, id=id) }}">
+                {{ page }}</a></li>
+            {% else %}
+                <li class="page-item"><a class="page-link" href="{{ url_for(url_for_name, page=page, id=id) }}">{{ page }}</a>
+                </li>
+            {% endif %}
+        {% else %}
+            <span class="ellipsis" style="white-space; nowrap; overflow: hidden; text-overflow: ellipsis">…</span>
+        {% endif %}
+    {% endfor %}
+    </ul>
+</div>
+{% endmacro %}

@@ -1,0 +1,231 @@
+<h3>RT Graph</h3>
+<input type="button" value="update" id="btn_update">
+<div class="container-fluid" style="border: 1px solid green">
+    <div class="row">
+      <div class="col">
+        <div class="row border">
+          <div>Select Graph:
+            <select id="select_graph">
+              {% for s in subs %}
+              <option data-id="{{ s.id }}" data-columns="{{ s.columns }}" data-type="{{ s.data_type }}" data-address ="{{ s.address }}"
+                value="{{ s.address }}">{{ s.id }}:{{ s.address }}</option>
+              {% endfor %}
+            </select>
+            <b>Last
+              <select id="select_hours">
+                <option value="24">24</option>
+                <option value="48">48</option>
+                <option value="72">72</option>
+                <option value="144">144</option>
+                <option value="288">288</option>
+              </select>
+              hours</b>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+        <textarea rows="12" cols="128" id="ta"></textarea>
+    </div>
+<div
+style=" top:60px; left:10px; right:10px; width:800px; height:400px; margin-left: auto; margin-right: auto;">
+<div style="position: relative; width: 100%; height: 100%;">
+  <canvas id="canvas" width="800px" height="400px"></canvas>
+  <snap style="position: absolute; left: 50%; right: 50%; bottom: 50%;"></snap>
+  <div id="loader" class="loader" style="position: absolute;
+  left: 50%;
+  margin-left: -30px;
+  margin-bottom: -30px;
+  bottom: 50%; display: none;"></div>
+</div>
+</div>
+
+
+
+<script src="{{url_for('static', filename='chart.js')}}"></script>
+<script
+  src="{{url_for('static', filename='chartjs-adapter-date-fns.bundle.min.js')}}"></script>
+<script src="{{url_for('static', filename='socket.io.js')}}"
+  integrity="sha512-VJ6+sp2E5rFQk05caiXXzQd1wBABpjEj1r5kMiLmGAAgwPItw1YpqsCCBtq8Yr1x6C49/mTpRdXtq8O2RcZhlQ=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    Chart.defaults.animation.duration = 0;
+    Chart.defaults.hover.animationDuration = 0;
+    Chart.defaults.animation = false; // disables all animations
+    Chart.defaults.animations.colors = false; // disables animation defined by the collection of 'colors' properties
+    Chart.defaults.animations.x = false; // disables animation defined by the 'x' property
+    Chart.defaults.transitions.active.animation.duration = 0;    
+    const ctx = document.getElementById("canvas").getContext('2d');
+
+    const selectGraph = document.getElementById("select_graph");
+
+    const mainChartOptions = {
+    options: {
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            min: last24hr,
+            max: new Date(),
+          }
+        },
+      },
+      // This improves performance but won't parse the data and data needs to be normalized.
+      animation: false,
+      parsing: true,
+      normalized: true,
+    },
+    }
+    var last24hr = new Date()
+    last24hr.setDate(last24hr.getDate() - 1)
+
+    const mainChartConfig = {
+        type: 'line',
+        data : { 
+            datasets: [{
+                label: 'My First Dataset',
+                data: [65, 59, 80, 81, 56, 55, 40],
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+        },
+        {
+            label: "Second Dataset",
+            data: [25, 60, 30, 45, 50, 85],
+            fill: false,
+            borderColor: 'rgb(98, 142, 192)',
+            tension: 0.1
+        }]
+    },
+    options: mainChartOptions};
+
+    let mainChart = new Chart(ctx, mainChartConfig)
+
+    var socket = io.connect();
+    
+    function trimTZ(datetime) {
+        let iop = datetime.indexOf('+', 0)
+        if (iop != -1) 
+            return datetime.substr(0, iop)
+        return datetime
+    }
+
+    socket.on('notification', function (data) {
+        console.log(data);
+    })
+
+    socket.on('fakedata', function (data) {
+        console.log('fakedata', data)
+    })
+
+    socket.on('faketime', function (data) {
+        // console.log(data);
+        var ods = timeChart.data.datasets
+        let ob = ods.find(o => o.label === 'faketime');
+        // console.log(ob)
+        if (ob != undefined) {
+            ob.data.shift();
+            ob.data.push({ y: data.data, x: data.x });
+            timeChart.update()
+        }
+    })
+
+    var global_index = 0;
+
+    socket.on('json_data', function(data) {
+        const start = performance.now();
+        let ta = document.getElementById('ta');
+        ta.textContent += JSON.stringify(data) + "\n";
+
+        // Update Graph
+        if(data.topic_id == mainChart.data.topic_id) {
+            parsed_data = JSON.parse(data['json_data'])
+
+
+            for (var i = 0; i < mainChart.data.datasets.length; i++) {
+                let local_date = new Date(Date.parse(trimTZ(parsed_data.timestamp)))
+                if(local_date == 'Invalid Date') {
+                    local_date = new Date()
+                }
+                pushDataTimeChart(mainChart, i, local_date.toISOString(), parsed_data.value[i], 50, false)
+                // mainChart.data.datasets[i].data.push({x:local_date.toString(), y:parsed_data.value[i]})
+            }
+            global_index++;
+            if(global_index == 10) {
+              mainChart.update()
+              global_index = 0;
+            }
+        }
+        const end = performance.now();
+        console.log(`Execution time: ${end - start} ms`);
+    })
+
+    selectGraph.onchange = function() {
+        console.log(selectGraph.options[this.selectedIndex].dataset)
+        
+        // Clear Graph
+        console.log(mainChart.data)
+        clearChart(mainChart)
+        // Set new configuration
+
+        let topic_id = selectGraph.options[this.selectedIndex].dataset.id
+        let address = selectGraph.options[this.selectedIndex].dataset.address
+        let columns = selectGraph.options[this.selectedIndex].dataset.columns
+
+        let columns_array = JSON.parse(columns)
+        
+        let data = {
+            datasets: [],
+            address: address,
+            topic_id: topic_id,
+            columns_array: columns_array
+        }
+
+        for(let c = 0; c<columns_array.length; c++)
+        {
+            data_c = {
+                label: columns_array[c],
+                data: [],
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }
+            data.datasets.push(data_c)
+        }
+
+        mainChart.data = data
+        console.log(mainChart.data)
+        mainChart.update();
+    }
+
+    function clearChart(myChart){
+        if(myChart.data.datasets.length > 0){
+            myChart.data.datasets = []
+        }
+        
+        if(myChart.data.labels.length > 0){
+            myChart.data.labels = []
+        }
+
+        myChart.update();
+    }
+    
+    let btn_update = document.getElementById('btn_update')
+    btn_update.onclick = function()
+    {
+        mainChart.update()
+    }
+
+    function pushDataTimeChart(myChart, column_index, x, y, max, refresh) {
+      ds = myChart.data.datasets[column_index]
+      if (ds.data.length > max) {
+        ds.data.shift();
+      }
+      ds.data.push({ x: x, y: y })
+      if (refresh) {
+        myChart.update();
+      }
+    }
+
+
+</script>

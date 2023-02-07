@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+<h1>{{title}}</h1>
+<p>Paragraph</p>
+{% block content %}
+<div class="container-fluid">
+{% if rules %}
+<hr>
+<h3>{{ title }}</h3>
+<hr><table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Topic ID</th>
+        <th>Address</th>
+        <th>Rule</th>
+        <th>Active</th>
+        <th>Notify by email</th>
+        <th>Email</th>
+        <th title="Waits a number of seconds before sending another email.">Email cooldown</th>
+        <th>Date Added</th>
+        <th>Updated On</th>
+        <th>Logs</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for a in rules %}
+    <tr>
+        <td><a href="{{ url_for('main_blueprint.edit_rule', id=a.id) }}">{{ a.id }}</a></td>
+        <td><a href="{{ url_for('main_blueprint.edit_sub', id=a.topic_id) }}">{{ a.topic_id }}</a></td>
+        <td>{{ a.address }}</td>      
+        {% if a.func %}
+        <td>N:{{ a.func_time_n }} {{ a.func }}({{ a.column }}){{ a.rule }}{{ a.rule_value}}{{ a.func_time }}{{ a.func_time_n }}</td>
+        {% else %}
+        <td>{{ a.column or 'value'}}{{ a.rule }}{{ a.rule_value}}</td>
+        {% endif %}
+        <td>{{ a.active }}</td>        
+        <td>{{ a.notify_by_email }}</td>        
+        <td>{{ a.email or '' }}</td>        
+        <td>{{ a.email_cooldown }}</td>
+        <td>{{ a.created_on }}</td>
+        <td>{{ a.updated_on }}</td>
+        <td><a href="{{ url_for('main_blueprint.get_notification_logs', id=a.id, page=1) }}">View logs</a></td>
+        <td><a href="{{ url_for('main_blueprint.edit_rule', id=a.id) }}">Edit</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>{% else %}
+<p id='no_notifications' class="lead">No Alert Rules defined</p>
+{% endif %}
+      <a href="{{ url_for('main_blueprint.add_rule') }}"><h5>Add Alert Rule</h5></a><hr>
+    <script>
+    $('#select_topic_options').on('change', function(e){
+        var form = $(this).closest('form');
+        var id = $(this).find(':selected').data('id')
+        var url = "/alerts/address/" + encodeURIComponent($(this).val())
+        $.ajax({
+            url: url,
+            data: form.serialize(),
+            type: "POST",
+            success: function(response) {
+                $('#active').prop("checked", response.active)
+                $('#notify_by_email').prop("checked", response.notify_by_email)
+                $('#email').val(response.email)
+                $('#maximum').val(response.maximum)
+                $('#minimum').val(response.minimum)
+            }
+        })
+    })
+    </script>
+{% endblock %}

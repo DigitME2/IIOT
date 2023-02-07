@@ -1,0 +1,1109 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<head>
+</head>
+<div id='last_data' hidden>{{ last_data | tojson }}</div>
+<div id='sub_options_data' hidden>{{ sub_options | tojson }}</div>
+<!-- <div id="last_data" data-last="{{ last_data | tojson }}" hidden>
+</div> -->
+<div class="container-fluid" style="border: 1px solid green">
+  <div class="row">
+    <div class="col">
+      <div class="row border">
+        <div>Select Graph:
+          <select id="select_graph">
+            {% for s in sub_options %}
+            <option data-id="{{ s.id }}" data-columns="{{ s.columns }}" data-type="{{ s.data_type }}"
+              value="{{ s.address }}">{{ s.address }}</option>
+            {% endfor %}
+          </select>
+          <b>Last
+            <select id="select_hours">
+              <option value="24">24</option>
+              <option value="48">48</option>
+              <option value="72">72</option>
+              <option value="144">144</option>
+              <option value="288">288</option>
+            </select>
+            hours</b>
+        </div>
+
+        <div
+          style=" top:60px; left:10px; right:10px; width:800px; height:400px; margin-left: auto; margin-right: auto;">
+          <div style="position: relative; width: 100%; height: 100%;">
+            <canvas id="timeChart" width="800px" height="400px"></canvas>
+            <snap style="position: absolute; left: 50%; right: 50%; bottom: 50%;"></snap>
+            <div id="loader" class="loader" style="position: absolute;
+            left: 50%;
+            margin-left: -30px;
+            margin-bottom: -30px;
+            bottom: 50%; display: none;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row border">
+        <h4>Alerts</h4>
+        <div id="alerts"></div>
+        <table>
+          <thead id='thead'>
+          </thead>
+          <tbody id='tbody'>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col">
+      <div class="row border ">
+        <div class="col-sm border ">
+          Lab1
+          <div class="row border ">
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab1_temp" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab1_hum" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab1_light" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm border ">
+          Lab2
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab2_temp" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab2_hum" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab2_light" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm border ">
+          Lab3
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab3_temp" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab3_hum" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab3_light" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm border ">
+          Office
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_office_temp" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_office_hum" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_office_light" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm border ">
+          Office2
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_office2_temp" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_office2_hum" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_office2_light" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm border ">
+          lab/esp32/BMP180
+          <div class="row border ">
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab_esp32_bmp_180_temp" width="200" height="200"></canvas>
+            </div>
+          </div>
+          <div class="row border ">
+            <div
+              style=" top:0px; left:10px; right:10px; width:220px; height:200px; margin-left: auto; margin-right: auto;">
+              <canvas id="canvas_lab_esp32_bmp_180_pres" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{url_for('static', filename='chart.js')}}"></script>
+<script
+  src="{{url_for('static', filename='chartjs-adapter-date-fns.bundle.min.js')}}"></script>
+<script src="{{url_for('static', filename='socket.io.js')}}"
+  integrity="sha512-VJ6+sp2E5rFQk05caiXXzQd1wBABpjEj1r5kMiLmGAAgwPItw1YpqsCCBtq8Yr1x6C49/mTpRdXtq8O2RcZhlQ=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  const tctx = document.getElementById('timeChart').getContext('2d');
+
+  const lab1_temp_ctx = document.getElementById('canvas_lab1_temp').getContext('2d');
+  const lab1_humidity_ctx = document.getElementById('canvas_lab1_hum').getContext('2d');
+  const lab1_light_ctx = document.getElementById('canvas_lab1_light').getContext('2d');
+
+  const lab2_temp_ctx = document.getElementById('canvas_lab2_temp').getContext('2d');
+  const lab2_humidity_ctx = document.getElementById('canvas_lab2_hum').getContext('2d');
+  const lab2_light_ctx = document.getElementById('canvas_lab2_light').getContext('2d');
+
+  const lab3_temp_ctx = document.getElementById('canvas_lab3_temp').getContext('2d');
+  const lab3_humidity_ctx = document.getElementById('canvas_lab3_hum').getContext('2d');
+  const lab3_light_ctx = document.getElementById('canvas_lab3_light').getContext('2d');
+
+  const office_temp_ctx = document.getElementById('canvas_office_temp').getContext('2d');
+  const office_humidity_ctx = document.getElementById('canvas_office_hum').getContext('2d');
+  const office_light_ctx = document.getElementById('canvas_office_light').getContext('2d');
+
+  const office2_temp_ctx = document.getElementById('canvas_office2_temp').getContext('2d');
+  const office2_humidity_ctx = document.getElementById('canvas_office2_hum').getContext('2d');
+  const office2_light_ctx = document.getElementById('canvas_office2_light').getContext('2d');
+
+  const canvas_lab_esp32_bmp_180_temp_ctx = document.getElementById('canvas_lab_esp32_bmp_180_temp').getContext('2d');
+  const canvas_lab_esp32_bmp_180_pres_ctx = document.getElementById('canvas_lab_esp32_bmp_180_pres').getContext('2d');
+
+  
+  Chart.defaults.animation.duration = 0;
+  Chart.defaults.hover.animationDuration = 0;
+  Chart.defaults.animation = false; // disables all animations
+  Chart.defaults.animations.colors = false; // disables animation defined by the collection of 'colors' properties
+  Chart.defaults.animations.x = false; // disables animation defined by the 'x' property
+  Chart.defaults.transitions.active.animation.duration = 0;
+
+
+  var last24hr = new Date()
+  last24hr.setDate(last24hr.getDate() - 1)
+
+  var curHr = new Date()
+  var last_hr = new Date()
+  last_hr.setMinutes(curHr.getMinutes() - 20)
+  last_hr_1 = new Date()
+  last_hr_1.setMinutes(curHr.getMinutes() - 10)
+
+
+  var rulePlugin = {
+    id: 'rulePlugin',
+    afterDatasetDraw(chart, args, options) {
+      const {
+        ctx,
+        config,
+        data,
+        chartArea: { top, right, bottom, left, width, height },
+      } = chart;
+
+      const rules = data.datasets[0].rules;
+
+      if (rules.length > 1) {
+
+      }
+    }
+
+  }
+
+
+  var randomScalingFactor = function () {
+    return Math.round(Math.random() * 100);
+  };
+
+  var randomData = function () {
+    return [
+      randomScalingFactor(),
+      randomScalingFactor(),
+      randomScalingFactor(),
+      randomScalingFactor()
+    ];
+  };
+
+  var randomValue = function (data) {
+    return Math.max.apply(null, data) * Math.random();
+  };
+
+  ////////////////////////////////////////////////////////////////
+  // EMPTY CHART LABEL
+  ////////////////////////////////////////////////////////////////
+
+  const emptyChartLabel = {
+    id: "emptyChartLabel",
+    afterDatasetDraw(chart, args, options) {
+      console.log("emptyChartLabel afterDatasetDraw")
+      const {
+        ctx,
+        config,
+        data,
+        chartArea: { top, right, bottom, left, width, height },
+      } = chart;
+
+      let hasData = false
+      for (var i = 0; i < chart.data.datasets.length; i++) {
+        if (chart.data.datasets[i].data.length > 0) {
+          hasData = true
+          return true
+        }
+      }
+      if (hasData == false) {
+        const cx = right / 2;
+        const cy = bottom / 2;
+        text = "No data to display";
+        textWidth = ctx.measureText(text).width;
+        scaleFactor = width / textWidth;
+
+        // ctx.save()
+        // ctx.setTransform(1.0, 0, 0, 1.0, 0, 0);
+        // ctx.beginPath()
+        // ctx.strokeStyle  = "green";
+        // ctx.moveTo(0, 0)
+        // ctx.lineTo(right, bottom)
+        // ctx.stroke();
+        // ctx.closePath()
+        // ctx.beginPath()
+        // ctx.strokeStyle = "green";
+        // ctx.moveTo(right, 0)
+        // ctx.lineTo(0, bottom)
+        // ctx.stroke();
+        // ctx.closePath()
+        // ctx.restore()
+
+        ctx.save();
+        ctx.setTransform(1.0, 0, 0, 1.0, 0, 0);
+        ctx.clearRect(0, 0, right * 2, bottom * 2);
+        ctx.setTransform(scaleFactor, 0, 0, scaleFactor, cx, cy);
+        ctx.fillStyle = "#eeeeee";
+        ctx.textAlign = "center";
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
+    }
+  }
+
+
+  var timeChartConfig = {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Temperature',
+          address: '/sensorPods/sensorPodLab1/data',
+          backgroundColor: 'rgba(255, 0, 0, 0.5)',
+          borderColor: 'rgba(255, 0, 0, 1.0)',
+          column: 'airTemp',
+        },
+        {
+          label: 'Humidity',
+          address: '/sensorPods/sensorPodLab1/data',
+          backgroundColor: 'rgba(0, 0, 255, 0.5)',
+          borderColor: 'rgba(0, 0, 255, 1.0)',
+          column: 'airHum',
+        },
+        {
+          label: 'Light Level',
+          address: '/sensorPods/sensorPodLab1/data',
+          backgroundColor: 'rgba(255, 255, 0, 0.5)',
+          borderColor: 'rgba(255, 255, 0, 1.0)',
+          column: 'analogueChannels',
+        }
+      ],
+    },
+    options: {
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            min: last24hr,
+            max: new Date(),
+          }
+        },
+      },
+      // This improves performance but won't parse the data and data needs to be normalized.
+      animation: false,
+      parsing: true,
+      normalized: true,
+    },
+    // plugins: [emptyChartLabel]
+  }
+
+  var timeChart = new Chart(tctx, timeChartConfig);
+
+
+  ////////////////////////////////////////////////////////////////
+  // GAUGE DEFINIITION 
+  ////////////////////////////////////////////////////////////////
+
+  //gaugeNeedle
+  const gaugeNeedle = {
+    id: "gaugeNeedle",
+    afterDatasetDraw(chart, args, options) {
+      const {
+        ctx,
+        config,
+        data,
+        chartArea: { top, right, bottom, left, width, height },
+      } = chart;
+
+      const needleValue = data.datasets[0].needleValue;
+      const maxValue = data.datasets[0].maxValue;
+      const minValue = data.datasets[0].minValue;
+      const unit = data.datasets[0].unit;
+      const lineThickness = data.datasets[0].lineThickness;
+      const dataTotal = data.datasets[0].data.reduce((a, b) => a + b, 0);
+      const cx = chart._metasets[0].data[0].x;
+      const cy = chart._metasets[0].data[0].y;
+      const fontSize = data.datasets[0].fontSize;
+      const fontSizeSub = data.datasets[0].fontSize * 0.75;
+      const midLabel = data.datasets[0].midLabel || '';
+      var topLeftLabel = data.datasets[0].topLeftLabel || '';
+      const circumference = data.datasets[0].circumference;
+      const rotation = data.datasets[0].rotation;
+
+      var angle = ((1 / (maxValue - minValue)) * (needleValue - minValue)) * (circumference / 180) * Math.PI
+      var maxAngle = ((1 / (maxValue - minValue)) * (maxValue - minValue)) * (circumference / 180) * Math.PI
+
+      ctx.beginPath();
+      xx = chart._metasets[0].data[0].x
+      yy = chart._metasets[0].data[0].y
+      ctx.arc(xx, yy, lineThickness * 2.5, 0, 2 * Math.PI);
+      ctx.fillStyle = "#0000ff";
+      ctx.fill();
+
+      // Print mid-text at the bottom
+      if (circumference >= 220) {
+
+      }
+      else { // Print text at the top
+
+      }
+
+      ctx.save();
+
+      //needle
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, -lineThickness);
+      ctx.lineTo(-cx, 0);
+      ctx.lineTo(0, lineThickness);
+      ctx.fillStyle = "#ddeedd";
+      ctx.fill();
+      ctx.closePath();
+
+      //mid-needle
+      ctx.beginPath();
+      ctx.moveTo(0, -lineThickness * 0.5);
+      ctx.lineTo(-cx, 0);
+      ctx.lineTo(0, lineThickness * 0.5);
+      ctx.fillStyle = "#ee1100";
+      ctx.fill();
+
+      //dot
+      ctx.translate(-cx, -cy);
+      ctx.beginPath();
+      ctx.arc(cx, cy, lineThickness * 2, 0, 2 * Math.PI);
+      ctx.fillStyle = "#ffff99";
+      ctx.fill();
+      ctx.restore();
+
+      ctx.font = `${fontSize}px Courier New`;
+      ctx.fillStyle = "#F6953A";
+
+      //needle value
+      ctx.fillText(needleValue + unit, cx, cy + fontSize + 10);
+      ctx.font = `${fontSizeSub}px Courier New`;
+
+      //left text
+      ctx.textAlign = "left";
+      ctx.fillText(minValue, 5, cy + 15);
+      ctx.textAlign = "center";
+
+      //middle text
+      ctx.save();
+      ctx.translate(cx, cy)
+      ctx.rotate(maxAngle / 2)
+
+      ctx.save()
+      ctx.translate(-cx - (fontSizeSub / 2), 0);
+      ctx.rotate(-maxAngle / 2);
+      ctx.fillText((maxValue + minValue) / 2, 0, 0);
+      ctx.restore();
+
+      ctx.fillStyle = "#ffddcc";
+      ctx.fill();
+      ctx.restore();
+
+      // NEW LINE
+
+      //needle
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(maxAngle * 1.07);
+
+      ctx.save()
+      ctx.translate(-cx * 0.75, 0);
+      ctx.rotate(-maxAngle * 1.07);
+      ctx.fillText(maxValue, 0, 0);
+      ctx.restore();
+
+      ctx.fillStyle = "#ffddcc";
+      ctx.fill();
+      ctx.restore();
+      //////
+
+      //topleft Label
+      ctx.textAlign = "left";
+      ctx.font = `${fontSizeSub * 0.75}px Courier New`;
+      ctx.fillText(topLeftLabel, 0, fontSizeSub)
+
+      ctx.font = `${fontSizeSub}px Courier New`;
+      //middle label
+      ctx.textAlign = "center";
+      ctx.fillText(midLabel, cx, cy * 0.75);
+    },
+  };
+
+  function gauge_data_config(_labels, _data, _backgroundColor, _address, _column, _midLabel,
+    _needleValue, _minValue, _maxValue, _unit, _fontSize) {
+    if (typeof _labels === 'undefined') {
+      _labels = ["Low", "Medium", "High"];
+    }
+
+    if (typeof _data === 'undefined') {
+      _data = [90, 90, 90]
+    }
+
+    if (typeof _backgroundColor === 'undefined') {
+      _backgroundColor = [
+        "rgba(75, 192, 86, 0.8)",
+        "rgba(255, 205, 85, 0.8)",
+        "rgba(255, 28, 64, 0.8)",
+      ]
+    }
+
+    if (typeof _address === 'undefined') {
+      _address = "label"
+    }
+
+    if (typeof _column === 'undefined') {
+      _column = "airTemp"
+    }
+
+    if (typeof _midLabel === 'undefined') {
+      _midLabel = "Temperature"
+    }
+
+    if (typeof _needleValue === 'undefined') {
+      _needleValue = 50.0
+    }
+
+    if (typeof _maxValue === 'undefined') {
+      _maxValue = 100
+    }
+
+    if (typeof _minValue === 'undefined') {
+      _minValue = 0
+    }
+
+    if (typeof _unit === 'undefined') {
+      _unit = "°C"
+    }
+
+    if (typeof _fontSize === 'undefined') {
+      _fontSize = 24
+    }
+
+    return {
+      labels: _labels,
+      datasets: [
+        {
+          address: _address,
+          data: _data,
+          backgroundColor: _backgroundColor,
+          column: _column,
+          midLabel: _midLabel,
+          needleValue: _needleValue,
+          maxValue: _maxValue,
+          minValue: _minValue,
+          lineThickness: 3,
+          unit: _unit,
+          fontSize: _fontSize,
+          borderColor: "grey",
+          borderWidth: 2,
+          cutout: "80%",
+          circumference: 180,
+          rotation: 270,
+          borderRadius: 2,
+        },
+      ],
+    }
+  }
+
+  function gauge_config(_data) {
+    return {
+      type: "doughnut",
+      data: _data,
+      options: {
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            yAlign: "bottom",
+            displayColors: false,
+            callbacks: {
+              label: function (tooltipItem, data, value) {
+                return tooltipItem.label;
+              },
+            },
+          },
+        },
+        responsive: false,
+        maintainAspectRatio: false,
+
+        // This improves performance but won't parse the data and data needs to be normalized.
+        parsing: false,
+        normalized: true
+      },
+      plugins: [gaugeNeedle],
+    };
+  }
+
+  ////////////////////////////////////////////////////////////////
+  // LAB1 CONIFG 
+  ////////////////////////////////////////////////////////////////
+
+  gauge_sizes = [80, 80, 80, 30]
+
+  gauge_colors = ["rgba(75, 192, 86, 0.8)",
+    "rgba(255, 205, 85, 0.8)",
+    "rgba(255, 28, 64, 0.8)",
+    "rgba(45,45,45, 1.0)"]
+
+  // LAB 1
+  // TEMP
+  const lab1_temp_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab1/data",
+    "airTemp", "Temperature", 0, 0, 40, '°C', undefined)
+
+  const lab1_temp_config = gauge_config(lab1_temp_data)
+
+  var lab1_temp_chart = new Chart(lab1_temp_ctx, lab1_temp_config);
+  lab1_temp_chart.update();
+
+  // LAB 1
+  // HUMIDITY
+  const lab1_humidity_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab1/data",
+    "airHum", "Humidity", 0, 0, 100, '%')
+
+  const lab1_humidity_config = gauge_config(lab1_humidity_data)
+
+  var lab1_humidity_chart = new Chart(lab1_humidity_ctx, lab1_humidity_config);
+  lab1_humidity_chart.update();
+
+  // LAB 1
+  // LIGHT LEVEL
+  const lab1_light_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab1/data",
+    "analogueChannels", "Light", 0, 0, 100, '')
+  const lab1_light_config = gauge_config(lab1_light_data)
+
+  var lab1_light_chart = new Chart(lab1_light_ctx, lab1_light_config);
+  lab1_light_chart.update();
+
+
+  ////////////////////////////////////////////////////////////////
+  // LAB2 CONIFG 
+  ////////////////////////////////////////////////////////////////
+
+  // LAB 2
+  // TEMP
+  const lab2_temp_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab2/data",
+    "airTemp", "Temperature", 0, 0, 40, '°C')
+  const lab2_temp_config = gauge_config(lab2_temp_data)
+
+  var lab2_temp_chart = new Chart(lab2_temp_ctx, lab2_temp_config);
+  lab2_temp_chart.update();
+
+  // LAB 2
+  // HUMIDITY
+  const lab2_humidity_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab2/data",
+    "airHum", "Humidity", 0, 0, 100, '%')
+  const lab2_humidity_config = gauge_config(lab2_humidity_data)
+
+  var lab2_humidity_chart = new Chart(lab2_humidity_ctx, lab2_humidity_config);
+  lab2_humidity_chart.update();
+
+  // LAB 2
+  // LIGHT LEVEL
+  const lab2_light_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab2/data",
+    "analogueChannels", "Light", 0, 0, 100, '')
+  const lab2_light_config = gauge_config(lab2_light_data)
+
+  var lab2_light_chart = new Chart(lab2_light_ctx, lab2_light_config);
+  lab2_light_chart.update();
+
+
+  ////////////////////////////////////////////////////////////////
+  // LAB3 CONIFG 
+  ////////////////////////////////////////////////////////////////
+
+  // LAB 3
+  // TEMP
+  const lab3_temp_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab3/data",
+    "airTemp", "Temperature", 0, 0, 40, '°C')
+  const lab3_temp_config = gauge_config(lab3_temp_data)
+
+  var lab3_temp_chart = new Chart(lab3_temp_ctx, lab3_temp_config);
+  lab3_temp_chart.update();
+
+  // LAB 3
+  // HUMIDITY
+  const lab3_humidity_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab3/data",
+    "airHum", "Humidity", 0, 0, 100, '%')
+  const lab3_humidity_config = gauge_config(lab3_humidity_data)
+
+  var lab3_humidity_chart = new Chart(lab3_humidity_ctx, lab3_humidity_config);
+  lab3_humidity_chart.update();
+
+  // LAB 3
+  // LIGHT LEVEL
+  const lab3_light_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodLab3/data",
+    "analogueChannels", "Light", 0, 0, 100, '')
+  const lab3_light_config = gauge_config(lab3_light_data)
+
+  var lab3_light_chart = new Chart(lab3_light_ctx, lab3_light_config);
+  lab3_light_chart.update();
+
+  ////////////////////////////////////////////////////////////////
+  // OFFICE CONIFG 
+  ////////////////////////////////////////////////////////////////
+
+  // OFFICE
+  // TEMP
+  const office_temp_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodOffice/data",
+    "airTemp", "Temperature", 0, 0, 40, '°C')
+  const office_temp_config = gauge_config(office_temp_data)
+
+  var office_temp_chart = new Chart(office_temp_ctx, office_temp_config);
+  office_temp_chart.update();
+
+  // OFFICE
+  // HUMIDITY
+  const office_humidity_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodOffice/data",
+    "airHum", "Humidity", 0, 0, 100, '%')
+  const office_humidity_config = gauge_config(office_humidity_data)
+
+  var office_humidity_chart = new Chart(office_humidity_ctx, office_humidity_config);
+  office_humidity_chart.update();
+
+  // OFFICE
+  // LIGHT LEVEL
+  const office_light_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodOffice/data",
+    "analogueChannels", "Light", 0, 0, 100, '')
+  const office_light_config = gauge_config(office_light_data)
+
+  var office_light_chart = new Chart(office_light_ctx, office_light_config);
+  office_light_chart.update();
+
+  ////////////////////////////////////////////////////////////////
+  // OFFICE2 CONIFG 
+  ////////////////////////////////////////////////////////////////
+
+  // OFFICE 2
+  // TEMP
+  const office2_temp_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodOffice2/data",
+    "airTemp", "Temperature", 0, 0, 40, '°C')
+  const office2_temp_config = gauge_config(office2_temp_data)
+
+  var office2_temp_chart = new Chart(office2_temp_ctx, office2_temp_config);
+  office2_temp_chart.update();
+
+  // OFFICE 2
+  // HUMIDITY
+  const office2_humidity_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodOffice2/data",
+    "airHum", "Humidity", 0, 0, 100, '%')
+  const office2_humidity_config = gauge_config(office2_humidity_data)
+
+  var office2_humidity_chart = new Chart(office2_humidity_ctx, office2_humidity_config);
+  office2_humidity_chart.update();
+
+  // OFFICE 2
+  // LIGHT LEVEL
+  const office2_light_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "/sensorPods/sensorPodOffice2/data",
+    "analogueChannels", "Light", 0, 0, 100, '')
+  const office2_light_config = gauge_config(office2_light_data)
+
+  var office2_light_chart = new Chart(office2_light_ctx, office2_light_config);
+  office2_light_chart.update();
+  
+  // Lab ESP32 BMP180
+  // Temperature
+  const esp32_bmp_180_temp_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "lab/esp32/BMP180",
+    "Temperature", "Temperature", 0, 0, 100, '')
+  const oesp32_bmp_180_temp_config = gauge_config(esp32_bmp_180_temp_data)
+
+  var esp32_bmp_180_temp_chart = new Chart(canvas_lab_esp32_bmp_180_temp_ctx, oesp32_bmp_180_temp_config);
+  esp32_bmp_180_temp_chart.update();
+
+  // Pressure
+  const esp32_bmp_180_pres_data = gauge_data_config(["Low", "Medium", "High", "WARNING!"], gauge_sizes, gauge_colors, "lab/esp32/BMP180",
+    "Pressure", "Pressure", 0, 0, 100, '')
+  const esp32_bmp_180_pres_config = gauge_config(esp32_bmp_180_pres_data)
+
+  var esp32_bmp_180_pres_chart = new Chart(canvas_lab_esp32_bmp_180_pres_ctx, esp32_bmp_180_pres_config);
+  esp32_bmp_180_pres_chart.update();
+
+  var lab_charts = []
+  lab_charts.push(lab1_temp_chart)
+  lab_charts.push(lab1_humidity_chart)
+  lab_charts.push(lab1_light_chart)
+
+  lab_charts.push(lab2_temp_chart)
+  lab_charts.push(lab2_humidity_chart)
+  lab_charts.push(lab2_light_chart)
+
+  lab_charts.push(lab3_temp_chart)
+  lab_charts.push(lab3_humidity_chart)
+  lab_charts.push(lab3_light_chart)
+
+  lab_charts.push(office_temp_chart)
+  lab_charts.push(office_humidity_chart)
+  lab_charts.push(office_light_chart)
+
+  lab_charts.push(office2_temp_chart)
+  lab_charts.push(office2_humidity_chart)
+  lab_charts.push(office2_light_chart)
+
+
+  let last72hr = new Date()
+  last72hr.setDate(last72hr.getDate() - 3);
+  last72hr.setHours(0, 0, 0, 0);
+
+  //var socket = io.connect('localhost:8080');
+  var socket = io.connect();
+  $(document).ready(function () {
+  })
+
+  function pushDataToGauge(chart, column, data, topLeftLabel) {
+    if (chart.data.datasets[0].column == column) {
+      chart.data.datasets[0].needleValue = data
+      chart.data.datasets[0].topLeftLabel = topLeftLabel
+    }
+    chart.update()
+  }
+
+  socket.on('json_lab_data', function (data) {
+    console.log(data);
+    json_data = JSON.parse(data['json_data'])
+    console.log(json_data);
+    const start = performance.now();
+
+    for (var i = 0; i < lab_charts.length; i++) {
+      ds = lab_charts[i].data.datasets[0]
+      if (ds.address == data.address) {
+        hhmmss = new Date(data['timestamp'])
+        hhmmss = (hhmmss.getMonth() + 1) + "/" + hhmmss.getDate() + " " + hhmmss.toTimeString().split(' ')[0]
+        pushDataToGauge(lab_charts[i], 'airTemp', json_data['airTemp'], hhmmss)
+        pushDataToGauge(lab_charts[i], 'airHum', json_data['airHum'], hhmmss)
+        pushDataToGauge(lab_charts[i], 'analogueChannels', invertValue(json_data['analogueChannels'] / 10.0, 0, 1024 / 10.0).toFixed(2), hhmmss)
+      }
+    }
+
+    for (var i = 0; i < timeChart.data.datasets.length; i++) {
+      tds = timeChart.data.datasets;
+      if (timeChart.data.datasets[i].column == 'airTemp' && timeChart.data.datasets[i].address == data.address) {
+        pushDataTimeChart(timeChart, i, data['timestamp'], json_data['airTemp'], 480, false)
+      }
+      else if (timeChart.data.datasets[i].column == 'airHum' && timeChart.data.datasets[i].address == data.address) {
+        pushDataTimeChart(timeChart, i, data['timestamp'], json_data['airHum'], 480, false)
+      } else if (timeChart.data.datasets[i].column == 'analogueChannels' && timeChart.data.datasets[i].address == data.address) {
+        pushDataTimeChart(timeChart, i, data['timestamp'], invertValue(json_data['analogueChannels'] / 10.0, 0, 1024 / 10.0).toFixed(2), 480, false)
+      }
+      // label
+      "MinTemp"
+      "MaxTemp"
+      "AvgTemp"
+      // column
+      "minTemp"
+      "maxTemp"
+      "avgTemp"
+    }
+    timeChart.update()
+
+    const end = performance.now();
+    console.log(`Execution time: ${end - start} ms`);
+  })
+
+  function pushDataTimeChart(tChart, column_index, x, y, max, refresh) {
+    ds = tChart.data.datasets[column_index]
+    if (ds.data.length > max) {
+      ds.data.shift();
+    }
+    ds.data.push({ x: x, y: y })
+    if (refresh) {
+      tChart.update();
+    }
+  }
+
+
+  socket.on('notification', function (data) {
+    console.log(data);
+  })
+
+  socket.on('fakedata', function (data) {
+    console.log('fakedata', data)
+  })
+
+  socket.on('faketime', function (data) {
+    // console.log(data);
+    var ods = timeChart.data.datasets
+    let ob = ods.find(o => o.label === 'faketime');
+    // console.log(ob)
+    if (ob != undefined) {
+      ob.data.shift();
+      ob.data.push({ y: data.data, x: data.x });
+      timeChart.update()
+    }
+  })
+
+  $(document).ready(function () {
+    let JSON_RAW = document.getElementById('last_data').innerHTML;
+    last_data = JSON.parse(JSON_RAW)
+    for (var n = 0; n < last_data.length; n++) {
+      console.log(last_data[n])
+      json_data = last_data[n]['value']
+      for (var i = 0; i < lab_charts.length; i++) {
+        ds = lab_charts[i].data.datasets[0]
+        if (ds.address == last_data[n]['topic']) {
+          hhmmss = new Date(last_data[n]['timestamp'])
+          hhmmss = (hhmmss.getMonth() + 1) + "/" + hhmmss.getDate() + " " + hhmmss.toTimeString().split(' ')[0]
+          pushDataToGauge(lab_charts[i], 'airTemp', json_data['airTemp'], hhmmss)
+          pushDataToGauge(lab_charts[i], 'airHum', json_data['airHum'], hhmmss)
+          pushDataToGauge(lab_charts[i], 'analogueChannels', invertValue(json_data['analogueChannels'] / 10.0, 0, 1024 / 10.0).toFixed(2), hhmmss)
+        }
+      }
+    }
+
+    $('#select_graph').change()
+  })
+
+  function showAlerts(topic_id) {
+    let JSON_RAW = document.getElementById('sub_options_data').innerHTML;
+    sub_options_data = JSON.parse(JSON_RAW)
+    excludeKeys = ['func', 'func_time', 'func_time_n', 'email', 'created_on', 'updated_on', 'timestamp', 'notify_by_email', 'email_cooldown']
+    console.log(sub_options_data)
+    for (var s = 0; s < sub_options_data.length; s++) {
+      if (sub_options_data[s].id == topic_id) {
+        alerts = sub_options_data[s].alerts
+        $('#alerts').empty()
+        $('#alerts').append(`<table>
+                              <thead id='thead'>
+                              </thead>
+                              <tbody id='tbody'>
+                              </tbody>
+                              </table>`)
+        generateTable(alerts, excludeKeys, "thead", "tbody")
+      }
+    }
+  }
+
+  function generateTable(arrObj, excludeKeys, tableHeadID, tableBodyID) {
+    var tbody = document.getElementById(tableBodyID)
+    var thead = document.getElementById(tableHeadID)
+
+    for (var i = 0; i < arrObj.length; i++) {
+      // INSERT TABLE HEADERS
+      if (i == 0) {
+        let row = thead.insertRow(-1);
+
+        for (var [key, value] of Object.entries(arrObj[i])) {
+          if (excludeKeys.includes(key)) {
+            continue
+          }
+          row.insertCell(-1).outerHTML = `<th>${key}</th>`
+        }
+      }
+
+      // INSERT TABLE ROWS
+      let row = thead.insertRow(-1);
+      for (var [key, value] of Object.entries(arrObj[i])) {
+        if (excludeKeys.includes(key)) {
+          continue
+        }
+        let col = row.insertCell(-1);
+        col.textContent = value;
+      }
+    }
+  }
+
+  function pushArrDataTimeChart(tChart, column_index, arrX, arrY, max, refresh) {
+    tChart.data.datasets[column_index] = arrX
+  }
+
+  $('#select_hours').on('change', function () {
+    console.log(this.value)
+    $('#select_graph').change()
+  })
+
+  function clearTimeChart(timeChart, newAddress) {
+    for (var c = 0; c < timeChart.data.datasets.length; c++) {
+      if (timeChart.data.datasets[c].column == 'airTemp') {
+        tempIndex = c
+        continue
+      }
+      if (timeChart.data.datasets[c].column == 'airHum') {
+        humIndex = c
+        continue
+      }
+      if (timeChart.data.datasets[c].column == 'analogueChannels') {
+        lightIndex = c
+        continue
+      }
+    }
+
+    if (typeof tempIndex == undefined || typeof humIndex == undefined || typeof lightIndex == undefined) {
+      return ""
+    }
+
+    if (timeChart) {
+      timeChart.data.datasets[tempIndex].data = []
+      timeChart.data.datasets[tempIndex].address = newAddress
+      timeChart.data.datasets[humIndex].data = []
+      timeChart.data.datasets[humIndex].address = newAddress
+      timeChart.data.datasets[lightIndex].data = []
+      timeChart.data.datasets[lightIndex].address = newAddress
+    }
+
+    return [tempIndex, humIndex, lightIndex]
+  }
+
+  function invertValue(value, min, max) {
+    return max - value + min
+  }
+
+  var jqxhr_ajax = {abort: function () {}};
+
+  $('#select_graph').on('change', function () {
+    document.getElementById('loader').style.display = '';
+    selected_option = $(this).find(':selected')[0]
+    showAlerts(selected_option.dataset.id)
+    hours = parseInt($('#select_hours').val())
+    // URL_FOR CONSTANT - TO CHANGE
+    url = `/get_json_lab_data/${selected_option.dataset.id}`
+    console.log('url: ' + url)
+    jqxhr_ajax.abort();
+    jqxhr_ajax = $.ajax({
+      url: url,
+      type: "POST",
+      data: {
+        hours: hours,
+        data_type: "json_lab"
+      },
+      success: function (response) {
+        var tempIndex, humIndex, lightIndex
+        if (response[0] != null) {
+          indexes = clearTimeChart(timeChart, response[0].topic)
+        }
+        else {
+          indexes = clearTimeChart(timeChart, null)
+        }
+        tempIndex = indexes[0]
+        humIndex = indexes[1]
+        lightIndex = indexes[2]
+        if (response == null || response.length == 0) {
+          timeChart.update()
+          document.getElementById('loader').style.display = 'none';
+          return
+        }
+        console.log(response[0])
+        // get airTemp column index
+
+        for (var i = 0; i < response.length; i++) {
+          response[i]['value'] = JSON.parse(response[i]['value'])
+          // if( i == 0 ){
+          //   for (var z = 0; z < lab_charts.length; z++) {
+          //     ds = lab_charts[z].data.datasets[0]
+          //     if (ds.address == response[i].topic) {
+          //       pushDataToGauge(lab_charts[z], 'airTemp', response[i]['value']['airTemp'])
+          //       pushDataToGauge(lab_charts[z], 'airHum', response[i]['value']['airHum'])
+          //       pushDataToGauge(lab_charts[z], 'analogueChannels', response[i]['value']['analogueChannels']/10.0)
+          //     }
+          //   }
+          // }
+
+          pushDataTimeChart(timeChart, tempIndex, new Date(response[i]['timestamp']), response[i]['value']['airTemp'], response.length, false)
+          pushDataTimeChart(timeChart, humIndex, new Date(response[i]['timestamp']), response[i]['value']['airHum'], response.length, false)
+          pushDataTimeChart(timeChart, lightIndex, new Date(response[i]['timestamp']), invertValue(response[i]['value']['analogueChannels'] / 10.0, 0, 1024 / 10.0).toFixed(2), response.length, false)
+        }
+        timeChart.update()
+        document.getElementById('loader').style.display = 'none';
+      },
+      error: function (jqXHR, textStatus, errorThrown) {
+        if(jqXHR.statusText != 'abort')
+        {
+          console.log(jqXHR.responseText)
+          alert(jqXHR.responseText)
+        }
+        document.getElementById('loader').style.display = 'none';
+      }
+    })
+  })
+</script>
+{% endblock %}
