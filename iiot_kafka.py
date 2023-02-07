@@ -17,6 +17,8 @@ import datetime
 import json
 import sys
 import time
+import logging
+import math
 from typing import List
 
 import pandas as pd
@@ -28,23 +30,44 @@ from sqlalchemy.orm import sessionmaker
 from app.models import AlertRule, Mqtt, NotificationLog, TopicSubscription, db
 from config import Config
 
+logging.basicConfig(level=logging.DEBUG, 
+					format="%(asctime)s - [%(levelname)s] - %(message)s", 
+					handlers=[
+						logging.FileHandler("kafka_log.log"),
+						logging.StreamHandler()
+						]
+					)
 c = Config()
 
 KAFKA_TOPIC_IIOT = 'iiot'
 KAFKA_TOPIC_SENSORS = 'iiot.sensors'
 KAFKA_TOPIC_SENSOR_DATA = 'iiot.sensor.data'
 
-BOOTSTRAP_SERVERS = '192.168.0.145:9092'
+KAFKA_ALERT_RULES = 'iiot.sensors.alert_rules'
+KAFKA_ALERT_LOGS = 'iiot.sensors.alert_rules.logs'
+
+
+BOOTSTRAP_SERVERS = '10.30.47.12:9092'
 
 producer = Producer({'bootstrap.servers': BOOTSTRAP_SERVERS})
 
+def get_notification_log_between_timestamp(session: sessionmaker, dt_from: datetime.datetime, dt_to: datetime.datetime):
+    cond = NotificationLog.timestamp.between(str(dt_from), str(dt_to))
+    return session.query(NotificationLog).filter(cond).all()
 
-def sensors_definition_to_kafka(session: sessionmaker):
+def get_topic_subscriptions(session: sessionmaker):
     try:
         subs = session.query(TopicSubscription).all()
     except Exception as e:
-        print(e)
+        logging.exception(e)
     return subs
+
+
+def get_topic_subscriptions_between_timestamp(session: sessionmaker, dt_from: datetime.datetime, dt_to: datetime.datetime):
+    '''Returns the Topic Subscription (Sensor Definition) data between the specified date and time.'''
+
+    cond = TopicSubscription.updated_on.between(str(dt_from), str(dt_to))
+    return session.query(TopicSubscription).filter(cond).all()
 
 
 def get_sensor_data(session: sessionmaker, topic_id: int):
@@ -54,7 +77,7 @@ def get_sensor_data(session: sessionmaker, topic_id: int):
         mqtt_data = session.query(Mqtt).order_by(
             Mqtt.id.desc()).filter(Mqtt.topic_id == topic_id).first()
     except Exception as e:
-        print(e)
+        logging.exception(e)
     return mqtt_data
 
 
@@ -83,11 +106,32 @@ def sensor_data_to_dict(sensor_data: Mqtt):
 
 
 # Kafka limits message size to 1MB (1024*1024 bytes), therefore we need to partition sensor data if it's larger than 1MB
-def need_partition(sensors_data: List):
-    if sys.getsizeof(sensors_data) >= 1024*1024:
-        print('Data > 1MB')
-        # Partition..
+# I leave the safety margin and slice the data by 512*1024 bytes
+def need_partition(sensors_data: List, partition_size=512*1024):
+    if len(sensors_data) == 0:
+        return False, sensors_data
+    # Get Biggest Byte Size Element from the list
+    max_bytes = 0
+    for x in sensors_data:
+        max_bytes = max(sys.getsizeof(x), max_bytes)
 
+    # The Total (Maximum Possible) Byte Size of the list
+    number_of_elements = len(sensors_data)
+    total_size_in_bytes = max_bytes*number_of_elements
+
+    # Number of partitions
+    partitions = math.ceil(total_size_in_bytes / partition_size)
+
+    # Size of the slice
+    slice_size = math.floor(partition_size / max_bytes)
+
+    if total_size_in_bytes >= partition_size:
+        partitioned_sensors_data = [
+            sensors_data[(p - 1) * slice_size:p * slice_size]
+            for p in range(1, partitions + 1)
+        ]
+        return (True, partitioned_sensors_data)
+    return (False, sensors_data)
 
 def delivery_report(err, msg):
     """
@@ -105,7 +149,6 @@ def delivery_report(err, msg):
 
 if __name__ == '__main__':
     print('main')
-    # engine = sqldb.create_engine('instane///' + c.SQLALCHEMY_DATABASE_URI)
     engine = sqldb.create_engine('sqlite:///instance/data.sqlite')
     connection = engine.connect()
     metadata = sqldb.MetaData()
@@ -113,42 +156,17 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    sensor_def = sensors_definition_to_kafka(session)
-    print(sensor_def)
-    sd_arr = get_sensor_data_between_timestamp(session, 20,
-                                               datetime.datetime.now() - datetime.timedelta(hours=1), datetime.datetime.now())
-    sd_arr_dict = sensors_data_to_dict(sd_arr)
-
-    sd_arr_dict_json = [json.dumps(s) for s in sd_arr_dict]
-    print(len(sd_arr_dict_json))
-
-    '''
-    # 20 is the topic_id of lab/esp32/BMP180
-    for s in sensor_def:
-        # print(s)
-        sd = get_sensor_data(session, s.id)
-        if sd is None:
-            continue
-        sd_json = json.dumps(sd.to_dict())
-        print(sd_json)
-        print(len(sd_json))
-    '''
-    sch1 = datetime.datetime.now()
+    every_minute2 = datetime.datetime.now()
     sch2 = datetime.datetime.now()
     every_minute = datetime.datetime.now()
 
-    # Get the sensors definitions (Topic Subscriptions)
-    sensor_def = sensors_definition_to_kafka(session)
-
     while True:
-        # producer.pool(1.0)
         producer.poll(10.0)
         try:
             current_time = datetime.datetime.now()
 
-            # Send sensor data every minute through Kafka
+            # Send the snensor (MQTT) data every minute through Kafka
             if current_time > every_minute:
-                print('every_minute')
                 every_minute = current_time + datetime.timedelta(minutes=1)
                 date_from = datetime.datetime.now().replace(second=0, microsecond=0) - \
                     datetime.timedelta(minutes=1)
@@ -156,55 +174,67 @@ if __name__ == '__main__':
                 date_to = date_from + \
                     datetime.timedelta(minutes=1, microseconds=-1)
 
-                print(f'Getting data from {str(date_from)} to {str(date_to)}')
- 
+                print(f'Getting MQTT data from {str(date_from)} to {str(date_to)}')
+
+                # Get the sensors definitions (Topic Subscriptions)
+                topic_subs = get_topic_subscriptions(session)
+                
                 # Get the Sensor Data from every Topic Subscription
                 # *Perhaphs better (faster) option would be: getting all the MQTT data between the timestamps
-                for ts in sensor_def:
+                for ts in topic_subs:
                     sd_arr = get_sensor_data_between_timestamp(session, ts.id, date_from, date_to)
                     sd_arr_dict = sensors_data_to_dict(sd_arr)
-                    sd_arr_dict_json = [json.dumps(s) for s in sd_arr_dict]
-                    for i, s in enumerate(sd_arr_dict_json):
-                        producer.produce(topic=KAFKA_TOPIC_SENSOR_DATA,
-                                     key=f"{sd_arr[i].id}{sd_arr[i].timestamp}",
-                                     value=s,
-                                     on_delivery=delivery_report)
+                    partitioned_data = need_partition(sd_arr_dict, 1024*512)
+                    if partitioned_data[0]:
+                        for p in partitioned_data[1]:
+                            sd_arr_dict_json = [json.dumps(s) for s in p]
+                            for i, s in enumerate(sd_arr_dict_json):
+                                print(f"{p[i]['id']}_{p[i]['topic_id']}_{p[i]['timestamp']}")
+                                producer.produce(topic=KAFKA_TOPIC_SENSOR_DATA,
+                                            key=f"{p[i]['id']}_{p[i]['topic_id']}_{p[i]['timestamp']}",
+                                            value=s,
+                                            on_delivery=delivery_report)
+                    else:
+                        sd_arr_dict_json = [json.dumps(s) for s in partitioned_data[1]]
+                        for i, s in enumerate(sd_arr_dict_json):
+                            print(f"{partitioned_data[1][i]['id']}_{partitioned_data[1][i]['topic_id']}_{partitioned_data[1][i]['timestamp']}")
+                            producer.produce(topic=KAFKA_TOPIC_SENSOR_DATA,
+                                        key=f"{partitioned_data[1][i]['id']}_{partitioned_data[1][i]['topic_id']}_{partitioned_data[1][i]['timestamp']}",
+                                        value=s,
+                                        on_delivery=delivery_report)
 
-                # Test - Getting MQTT data from single Topic Subscription
-                # sd_arr = get_sensor_data_between_timestamp(
-                #     session, 20, date_from, date_to)
-                # sd_arr_dict = sensors_data_to_dict(sd_arr)
-                # sd_arr_dict_json = [json.dumps(s) for s in sd_arr_dict]
+            if current_time > every_minute2:
+                every_minute2 = current_time + datetime.timedelta(minutes=1)
+                date_from = datetime.datetime.now().replace(second=0, microsecond=0) - \
+                    datetime.timedelta(minutes=1)
+                date_to = date_from + \
+                    datetime.timedelta(minutes=1, microseconds=-1)
 
-                # for i, s in enumerate(sd_arr_dict_json):
-                #     producer.produce(topic=KAFKA_TOPIC_SENSOR_DATA,
-                #                      key=f"{sd_arr[i].id}{sd_arr[i].timestamp}",
-                #                      value=s,
-                #                      on_delivery=delivery_report)
+                print(f'Getting Topic Subscription data from {str(date_from)} to {str(date_to)}')
 
-            if current_time > sch1:
-                print('sch1')
-                sch1 = current_time + datetime.timedelta(minutes=60)
-                sensor_def = sensors_definition_to_kafka(session)
-                sensor_sef = [x.to_dict() for x in sensor_def]
-                print(f'sensor definition: ({sys.getsizeof(json.dumps(sensor_sef))})')
+                # Get Topic Subscriptions
+                topic_subs = get_topic_subscriptions_between_timestamp(session, date_from, date_to)
+                topic_subs_dict = [x.to_dict() for x in topic_subs]
+
+                print(topic_subs_dict)
+
+                # Produce Topic Subscriptions
                 producer.produce(topic=KAFKA_TOPIC_SENSORS, key="Sensors", value=json.dumps(
-                    sensor_sef), on_delivery=delivery_report)
+                    topic_subs_dict), on_delivery=delivery_report)
 
-            '''
-            if current_time > sch2:
-                print('sch2')
-                sch2 = current_time + datetime.timedelta(seconds=5)
-                sd = get_sensor_data(session, 20)
+                print(f'Getting Notification Logs data from {str(date_from)} to {str(date_to)}')
 
-                producer.produce(topic=KAFKA_TOPIC_SENSOR_DATA,
-                                key=f"{sd.id}{sd.timestamp}",
-                                value=sd.value,
-                                on_delivery=delivery_report)
-            '''
-        except KeyboardInterrupt:
-            print('KeyboardInterrupt!')
-            break
+                # Get Notification Logs
+                notification_logs = get_notification_log_between_timestamp(session, date_from, date_to)
+                notification_logs_dict = [x.to_dict() for x in notification_logs]
+                
+                print(notification_logs_dict)
+                # Produce Notification Logs
+                producer.produce(topic=KAFKA_ALERT_LOGS, key="NotificationLogs", value=json.dumps(
+                    notification_logs_dict), on_delivery=delivery_report)
 
-    print('\nFlushing records...')
-    producer.flush()
+        except Exception as e:
+            logging.exception(e)
+        
+
+

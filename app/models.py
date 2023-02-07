@@ -159,7 +159,19 @@ class NotificationLog(db.Model):
     def __repr__(self):
         return f"{self.id} message: {self.message} address: {self.address} t: {self.timestamp} created: {self.created_on} updated: {self.updated_on}"
 
+    def to_dict(self):
+        return dict(
+            id=self.id,
+            message=self.message,
+            timestamp=self.timestamp.isoformat(),
 
+            created_on=self.created_on.isoformat(),
+            updated_on=self.updated_on.isoformat(),
+            address=self.address,
+            
+            notification_alert_id=self.notification_alert_id,
+            topic_id=self.alert_rule.topic_id,
+        )
 @dataclass
 class AlertCompOperators(db.Model):
     __tablename__ = "alert_comp_operators"
