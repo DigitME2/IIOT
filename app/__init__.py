@@ -505,10 +505,6 @@ def init_mqtt(app: Flask) -> mqtt.Client:
     def on_message(client, userdata, msg):
         try:
             value = str(msg.payload.decode("utf-8"))
-            if msg.topic == app.config.get('MQTT_TOPIC_PING_DEVICES'):
-                print("MQTT_TOPIC_PING_DEVICES")
-                print(value)
-                return True
 
             with app.app_context():
                 topic_subscription = db.session.query(
@@ -518,82 +514,31 @@ def init_mqtt(app: Flask) -> mqtt.Client:
 
                 timestamp = datetime.datetime.now(datetime.timezone.utc)
                 if topic_subscription.data_type == 'single':
-                    if not store_single_mqtt_record(topic_subscription, value,
-                                                    timestamp):
-                        return False
-
-                    alerts = get_active_alerts_by_topic_id(
-                        topic_subscription.id)
-                    if alerts is None:
-                        return False
-
-                    check_alerts(alerts, topic_subscription, value, timestamp)
+                    if store_single_mqtt_record(topic_subscription, value, timestamp):
+                        check_alerts_for_single_value(topic_subscription, value, timestamp)
 
                 elif topic_subscription.data_type == 'json':
                     json_obj = ast.literal_eval(value)
-
-                    if not store_json_mqtt_record(topic_subscription, json_obj):
-                        return False
-
-                    broadcast_json_data(value, topic_subscription.id,
-                                        topic_subscription.address,
-                                        str(timestamp))
-
-                    alerts = get_active_alerts_by_topic_id(
-                        topic_subscription.id)
-                    if len(alerts) == 0:
-                        return False
-
-                    if topic_subscription.columns is None:
-                        check_alerts(alerts, topic_subscription,
-                                     float(json_obj['value']), timestamp)
-                    else:
-                        check_alerts_with_columns(alerts, topic_subscription,
-                                                  json_obj['value'], timestamp)
-
+                    if store_json_mqtt_record(topic_subscription, json_obj):
+                        broadcast_json_data(value, topic_subscription.id, topic_subscription.address, str(timestamp))
+                        check_alerts_for_json_value(topic_subscription, json_obj, timestamp)
                 elif topic_subscription.data_type == 'csv':
                     store_mqtt_record(topic_subscription,
                                       value.splitlines()[0], timestamp)
                 elif topic_subscription.data_type == 'json_lab':
                     # Get timestamp from json_lab object (messageID), if failed get the timestamp from server
-                    try:
-                        json_obj = ast.literal_eval(value)
-                        json_obj_datetime_unix = float(
-                            json_obj['messageID']) / 1000.0
-                        json_obj_datetime = datetime.datetime.fromtimestamp(
-                            json_obj_datetime_unix)
-                        json_obj_datetime = json_obj_datetime.replace(
-                            tzinfo=datetime.timezone.utc)
-
-                    except Exception as ex:
-                        json_obj_datetime = timestamp
-
-                    broadcast_json_lab_data(value, topic_subscription.address,
+                    json_obj_datetime = get_datetime_from_json_lab(value, timestamp)
+                    if store_mqtt_record(topic_subscription, value, json_obj_datetime):
+                        broadcast_json_lab_data(value, topic_subscription.address,
                                             str(json_obj_datetime),
                                             topic_subscription.id)
-                    store_mqtt_record(topic_subscription, value,
-                                      json_obj_datetime)
-                    obj = ast.literal_eval(value)
-
-                    alerts = get_active_alerts_by_topic_id(
-                        topic_subscription.id)
-                    if len(alerts) == 0:
-                        return False
-
-                    if topic_subscription.columns is None:
-                        check_alerts(alerts, topic_subscription, float(obj),
-                                     json_obj_datetime)
-                    else:
-                        check_alerts_with_columns(alerts,
-                                                  topic_subscription,
-                                                  obj,
-                                                  json_obj_datetime,
-                                                  is_dict=True)
+                        check_alerts_for_json_lab(topic_subscription, value, json_obj_datetime)
                 else:
                     app.logger.warning('unknown data type')
         except Exception as e:
             app.logger.exception("Exception on_message!")
             app.logger.exception(e)
+
 
     # Flask spawns two instances while running on Debug Mode. MQTT needs to have ONLY ONE instance to work properly.
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
@@ -611,6 +556,44 @@ def init_mqtt(app: Flask) -> mqtt.Client:
     #####################
     return mqttc
 
+def check_alerts_for_json_lab(topic_subscription, value, json_obj_datetime):
+    obj = ast.literal_eval(value)
+
+    if alerts := get_active_alerts_by_topic_id(topic_subscription.id):
+        if topic_subscription.columns is None:
+            check_alerts(alerts, topic_subscription, float(obj),
+                                        json_obj_datetime)
+        else:
+            check_alerts_with_columns(alerts, topic_subscription,
+                                              obj,
+                                              json_obj_datetime,
+                                              is_dict=True)
+
+def check_alerts_for_json_value(topic_subscription, json_obj, timestamp):
+    if alerts := get_active_alerts_by_topic_id(topic_subscription.id):
+        if topic_subscription.columns is None:
+            check_alerts(alerts, topic_subscription, float(json_obj['value']), timestamp)
+        else:
+            check_alerts_with_columns(alerts, topic_subscription, json_obj['value'], timestamp)	
+
+def check_alerts_for_single_value(topic_subscription, value, timestamp):
+    if alerts := get_active_alerts_by_topic_id(topic_subscription.id):
+        check_alerts(alerts, topic_subscription, value, timestamp)
+
+
+def get_datetime_from_json_lab(value, timestamp):
+    try:
+        json_obj = ast.literal_eval(value)
+        json_obj_datetime_unix = float(
+                        json_obj['messageID']) / 1000.0
+        json_obj_datetime = datetime.datetime.fromtimestamp(
+                        json_obj_datetime_unix)
+        json_obj_datetime = json_obj_datetime.replace(
+                        tzinfo=datetime.timezone.utc)
+
+    except Exception as ex:
+        json_obj_datetime = timestamp
+    return json_obj_datetime
 
 # Checks rule operation between value A and value B
 def check_rule_operator(operator: str, val_a: Union[float, str, int],
