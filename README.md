@@ -65,7 +65,6 @@ sudo systemctl restart mosquitto
 ```
 
 # How to run
-Execute run.py script
 ```bash 
 # On Linux
 python3.9 run.py
@@ -90,7 +89,7 @@ After=network.target
 [Service]
 User=user
 WorkingDirectory=/home/user/iot
-ExecStart=/home/user/iot/venv/bin/python3 /home/user/iot/run.py
+ExecStart=/home/user/iot/venv/bin/python3 /home/user/iot/run_ubuntu.py
 Restart=always
 
 [Install]
