@@ -39,13 +39,14 @@ c = Config()
 
 KAFKA_TOPIC_IIOT = "iiot"
 KAFKA_TOPIC_SENSORS = "iiot.sensors"
-KAFKA_TOPIC_SENSOR_DATA = "iiot.sensor.data"
+KAFKA_TOPIC_SENSORS_DATA = "iiot.sensors.data"
 
 KAFKA_ALERT_RULES = "iiot.sensors.alert_rules"
 KAFKA_ALERT_LOGS = "iiot.sensors.alert_rules.logs"
 
 
-BOOTSTRAP_SERVERS = "10.30.47.12:9092"
+BOOTSTRAP_SERVERS = "10.30.47.39:9092"
+# BOOTSTRAP_SERVERS = "10.30.47.12:9092"
 
 producer = Producer({"bootstrap.servers": BOOTSTRAP_SERVERS})
 
@@ -180,7 +181,7 @@ if __name__ == "__main__":
     every_minute = datetime.datetime.now()
 
     while True:
-        producer.poll(10.0)
+        producer.poll(2.0)
         try:
             current_time = datetime.datetime.now()
 
@@ -205,32 +206,15 @@ if __name__ == "__main__":
                         session, ts.id, date_from, date_to
                     )
                     sd_arr_dict = sensors_data_to_dict(sd_arr)
-                    partitioned_data = need_partition(sd_arr_dict, 1024 * 512)
-                    if partitioned_data[0]:
-                        for p in partitioned_data[1]:
-                            sd_arr_dict_json = [json.dumps(s) for s in p]
-                            for i, s in enumerate(sd_arr_dict_json):
-                                print(
-                                    f"{p[i]['id']}_{p[i]['topic_id']}_{p[i]['timestamp']}"
-                                )
-                                producer.produce(
-                                    topic=KAFKA_TOPIC_SENSOR_DATA,
-                                    key=f"{p[i]['id']}_{p[i]['topic_id']}_{p[i]['timestamp']}",
-                                    value=s,
-                                    on_delivery=delivery_report,
-                                )
-                    else:
-                        sd_arr_dict_json = [json.dumps(s) for s in partitioned_data[1]]
-                        for i, s in enumerate(sd_arr_dict_json):
-                            print(
-                                f"{partitioned_data[1][i]['id']}_{partitioned_data[1][i]['topic_id']}_{partitioned_data[1][i]['timestamp']}"
-                            )
-                            producer.produce(
-                                topic=KAFKA_TOPIC_SENSOR_DATA,
-                                key=f"{partitioned_data[1][i]['id']}_{partitioned_data[1][i]['topic_id']}_{partitioned_data[1][i]['timestamp']}",
-                                value=s,
-                                on_delivery=delivery_report,
-                            )
+                    sd_arr_dict_json = [json.dumps(s) for s in sd_arr_dict]
+                    for i, s in enumerate(sd_arr_dict_json):
+                        print(sd_arr[i].id)
+                        producer.produce(
+                            topic=KAFKA_TOPIC_SENSORS_DATA,
+                            key=f"{sd_arr[i].id}",
+                            value=s,
+                            on_delivery=delivery_report,
+                        )
 
             if current_time > every_minute2:
                 every_minute2 = current_time + datetime.timedelta(minutes=1)
@@ -248,16 +232,16 @@ if __name__ == "__main__":
                     session, date_from, date_to
                 )
                 topic_subs_dict = [x.to_dict() for x in topic_subs]
-
-                print(topic_subs_dict)
-
+                topic_subs_dict_json = [json.dumps(s) for s in topic_subs_dict]
+                for i, s in enumerate(topic_subs_dict_json):                    
+                    print(topic_subs[i])
                 # Produce Topic Subscriptions
-                producer.produce(
-                    topic=KAFKA_TOPIC_SENSORS,
-                    key="Sensors",
-                    value=json.dumps(topic_subs_dict),
-                    on_delivery=delivery_report,
-                )
+                    producer.produce(
+                        topic=KAFKA_TOPIC_SENSORS,
+                        key="Sensors",
+                        value=s,
+                        on_delivery=delivery_report,
+                    )
 
                 print(
                     f"Getting Notification Logs data from {str(date_from)} to {str(date_to)}"
@@ -268,15 +252,18 @@ if __name__ == "__main__":
                     session, date_from, date_to
                 )
                 notification_logs_dict = [x.to_dict() for x in notification_logs]
-
-                print(notification_logs_dict)
-                # Produce Notification Logs
-                producer.produce(
-                    topic=KAFKA_ALERT_LOGS,
-                    key="NotificationLogs",
-                    value=json.dumps(notification_logs_dict),
-                    on_delivery=delivery_report,
-                )
+                notification_logs_dict_json = [json.dumps(s) for s in notification_logs_dict]
+                for i, s in enumerate(notification_logs_dict_json):
+                    if notification_logs_dict:
+                        print(notification_logs_dict)
+                    # Produce Notification Logs
+                        producer.produce(
+                            topic=KAFKA_ALERT_LOGS,
+                            key=f"{notification_logs[i].id}",
+                            value=s,
+                            on_delivery=delivery_report,
+                        )
 
         except Exception as e:
+            producer.flush()
             logging.exception(e)
