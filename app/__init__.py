@@ -455,10 +455,18 @@ def init_app(config=None) -> Flask:
     app.logger.info('Server started!')
     return app
 
+def update_db(app, db):
+    # Add deleted bool column to Topic subscription table
+    try:
+        with db.engine.connect() as connection:
+            connection.execute(text("ALTER TABLE subscriptions ADD COLUMN deleted BOOLEAN DEFAULT 0 NOT NULL;"))
+    except SQLAlchemyError as er:
+        app.logger.exception(er)
 
 def generate_default_data(app: Flask, db):
     gen_default_indexes(app, db)
     create_default_data(app)
+    update_db(app, db)
 
 
 # Subscribe to the list of tuples MQTT topics (mqtt_topic, qos_level)
