@@ -964,17 +964,27 @@ def store_json_mqtt_record(topic_subscription: TopicSubscription, json_obj):
 
     return store_mqtt_record(topic_subscription, json_value, timestamp)
 
+
+def parse_timestamp(timestamp):
+    formats = ["%Y-%m-%dT%H:%M:%S.%f%zZ",
+               "%Y-%m-%dT%H:%M:%S.%f"]
+    for f in formats:
+        try:
+            ts = set_tz_utc_if_none(datetime.datetime.strptime(timestamp, f).astimezone(datetime.timezone.utc))            
+            return ts
+        except ValueError as ve:
+            pass
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
 def get_json_timestamp(json_obj):
     timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     if json_obj['timestamp'] is None or json_obj['timestamp'] == 'N/A' or json_obj['timestamp'] == '':
         return timestamp
-        
+    
     try:
-        timestamp = set_tz_utc_if_none(
-                datetime.datetime.strptime(json_obj['timestamp'],
-                                        "%Y-%m-%dT%H:%M:%S.%f%zZ").astimezone(
-                                            datetime.timezone.utc))
+        timestamp = parse_timestamp(json_obj['timestamp'])
         return timestamp
     except ValueError as ve:
         current_app.logger.exception(ve)
@@ -1021,7 +1031,10 @@ def check_alerts_with_columns(alerts: list[AlertRule],
     for a in alerts:
         col_index = json.loads(topic_subscription.columns).index(a.column)
         col_name = json.loads(topic_subscription.columns)[col_index]
-        obj_value = float(value[col_name]) if is_dict else float(
+        if isinstance(value, float):
+            obj_value = value
+        else: 
+            obj_value = float(value[col_name]) if is_dict else float(
             value[col_index])
         if lastAlert := NotificationLog.query.filter_by(
                 notification_alert_id=a.id).order_by(
