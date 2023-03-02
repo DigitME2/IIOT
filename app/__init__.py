@@ -39,7 +39,7 @@ from flask_mail import Mail, Message
 from flask_migrate import Migrate
 from flask_socketio import SocketIO, emit
 from sqlalchemy import and_, text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
 from app.middlewares import RequestTimeMiddleware
 from app.models import (AlertRule, Mqtt, NotificationLog, TopicSubscription,
@@ -195,6 +195,10 @@ def generate_index(app: Flask, arg1: str, db_instance):
         app.logger.info(arg1)
         with db_instance.engine.connect() as connection:
             connection.execute(text(arg1))
+
+    except OperationalError as er:
+        if not er._message().find("already exists"):
+            app.logger.exception(er)
     except SQLAlchemyError as er:
         app.logger.exception(er)
 
@@ -460,9 +464,12 @@ def update_db(app, db):
     try:
         with db.engine.connect() as connection:
             connection.execute(text("ALTER TABLE subscriptions ADD COLUMN deleted BOOLEAN DEFAULT 0 NOT NULL;"))
+    except OperationalError as er:
+        if not er._message().find("duplicate column"):
+            app.logger.exception(er)
     except SQLAlchemyError as er:
         app.logger.exception(er)
-
+    
 def generate_default_data(app: Flask, db):
     gen_default_indexes(app, db)
     create_default_data(app)
