@@ -15,8 +15,8 @@ limitations under the License.
 """
 import asyncio
 import os
+import re
 import random
-
 import paho.mqtt.client as mqtt_client
 import pandas as pd
 import plotly
@@ -119,12 +119,11 @@ def get_csv_file():
     cond = and_(Mqtt.timestamp.between(date_from, date_to_inclusive),
                 Mqtt.topic_id == topic_id)
     csv_topic_like = Mqtt.query.filter(cond)
-    csv_df = pd.read_sql_query(
-        str(
-            csv_topic_like.statement.compile(
-                compile_kwargs={"literal_binds": True})),
-        db.engine,
-    )
+    with db.engine.begin() as conn:
+        csv_df = pd.read_sql_query(
+                sql=text(str(csv_topic_like.statement.compile(
+                    compile_kwargs={"literal_binds": True}))),
+                    con=conn)
 
     # Convert to CSV file
     resp = current_app.make_response(csv_df.to_csv())
@@ -440,9 +439,20 @@ def get_all_subs():
                                          columns=columns)
         subscription.graph = True
 
-        if len(address) <= 1:
-            flash("Topic address is empty!", "warning")
+        # Validate address
+        if address is None or len(address) <= 1:
+            flash("Topic address is too short!", "warning")
             return redirect(url_for("main_blueprint.get_all_subs"))
+        elif not re.match(r"^(\d|\w|\/)+$", address):
+            flash("Topic address can only contain letters, numbers, underscore and forward slashes (/). No spaces or other special characters.", "warning")
+            return redirect(url_for("main_blueprint.get_all_subs"))
+
+
+        # Validate column names
+        if data_type == 'json' or data_type == 'json_lab':
+            if columns is None or not re.match(r'^\["\w+"(?:,\s*"\w+")*\]|^\[""\]|\[\]$', columns):
+                flash('The columns must be surrounded by [], each column must be quoted and separated by comma. E.g ["Temperature", "Humidity"] or ["Temperature"]')
+                return redirect(url_for("main_blueprint.get_all_subs"))
 
         if TopicSubscription.query.filter(
                 TopicSubscription.address == address).filter(

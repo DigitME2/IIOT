@@ -82,8 +82,8 @@
         <label for='address'
           title="Topic is also known as address. It is used to identify sensor. Do not use esp32config/# or add any special characters (especially # or $).">Topic
           name: </label>
-        <input id='address' type='text' name='address' pattern="^(\d|\w|\/)+$"
-          title="Must only contain letters and numbers (no special characters except forward slash and no spaces)">
+        <input id='address' type='text' name='address' min='1' pattern="^(\d|\w|\/)+$"
+          title="Must only contain letters, numbers, underscore and forward slashes (/). No spaces or other special characters.">
       </fieldset>
     </div>
     <div class="form-group">
@@ -98,7 +98,7 @@
     </div>
     <div class="form-group">
       <label id="label_columns" hidden title="Add column names if sesnor sends multi-column data.">Columns: </label>
-      <input id="columns" type="text" name="columns" placeholder='["Temp", "Pressure"]' pattern='^\["\w+"(?:,\s*"\w+")*\]|^\[""\]|\[\]$' hidden>
+      <input id="columns" type="text" name="columns" placeholder='["Temp", "Pressure"]' hidden>
     </div>
     <input type='submit' value='Submit' class='btn btn-primary'>
   </form>

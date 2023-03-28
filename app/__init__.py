@@ -341,10 +341,10 @@ def init_app(config=None) -> Flask:
         app, '%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s',
         'logs')
 
-    app.logger.debug('Debug message')
-    app.logger.info('Info message')
-    app.logger.warning('Warning message')
-    app.logger.error('Error message')
+    app.logger.debug('Testing Debug message')
+    app.logger.info('Testing Info message')
+    app.logger.warning('Testing Warning message')
+    app.logger.error('Testing Error message')
     app.logger.info(app.config)
     with app.app_context():
         app.logger.info('Starting server...')
