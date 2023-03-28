@@ -54,7 +54,8 @@ class Config(object):
     TOPICS_PER_PAGE = 50
 
     # MQTT SPECIFIC
-    MQTT_URL = "10.30.47.12"
+    # MQTT_URL = "10.30.47.12"
+    MQTT_URL = "127.0.0.1"
     MQTT_TOPIC_PING_DEVICES = "esp32config/PING"
     MQTT_TOPIC_PING_RESPONSE_DEVICES = "dm2/devices"
 
@@ -103,7 +104,7 @@ class TestConfig(object):
     TOPICS_PER_PAGE = 50
 
     # MQTT SPECIFIC
-    MQTT_URL = "10.30.47.12"
+    MQTT_URL = "127.0.0.1"
     MQTT_TOPIC_PING_DEVICES = "esp32config/PING"
     MQTT_TOPIC_PING_RESPONSE_DEVICES = "dm2/devices"
 

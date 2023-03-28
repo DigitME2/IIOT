@@ -1,6 +1,5 @@
 {% extends "layout.html" %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='table.css') }}">
 <div class="container-fluid">
 
 {% if not topics%}
@@ -9,28 +8,42 @@
 <hr>
 <h3>{{ title }}</h3>
 <hr>
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Topic ID</th>
-        <th>Topic</th>
-        <th>Value</th>
-        <th>Timestamp</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for topic in topics.items %}
-    <tr>
-        <td>{{ topic.id }}</td>
-        <td><a href="{{ url_for('main_blueprint.edit_sub', id=topic.topic_id) }}">{{ topic.topic_id }}</a></td>
-        <td><a href="{{ url_for('main_blueprint.edit_sub', id=topic.topic_id) }}">{{ topic.topic }}</a></td>            
-        <td>{{ topic.value }}</td>
-        <td>{{ topic.timestamp }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+<form action="{{ url_for('main_blueprint.delete_topic') }}" method="POST">
+    <div>
+        <div class="opacity-100">
+            <button class="btn btn-sm float-end" disabled>&nbsp;</button>
+        </div>
+        <button type="submit" class="btn btn-sm btn-danger" id="delete-selected" style="display: none">Delete</button>
+    </div>
+    <table class="table table-primary table-striped table-hover table-bordered">
+        <thead>
+        <tr>
+            <th>
+            {% if topics.items %}
+                <input type="checkbox" name="select_all">
+            {% endif %}
+            </th>
+            <th>ID</th>
+            <th>Topic ID</th>
+            <th>Topic</th>
+            <th>Value</th>
+            <th>Timestamp</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for topic in topics.items %}
+        <tr>
+            <td><input type="checkbox" name="topic_id" value="{{ topic.id }}"></td>
+            <td>{{ topic.id }}</td>
+            <td><a href="/subs/{{ topic.topic_id }}/edit">{{ topic.topic_id }}</a></td>
+            <td><a href="/subs/{{ topic.topic_id }}/edit">{{ topic.topic }}</a></td>
+            <td>{{ topic.value }}</td>
+            <td>{{ topic.timestamp }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</form>
     
     {# {% if topics.has_prev %}
         <a href="{{ url_for('main_blueprint.get_topics', page=1) }}">&laquo; first</a>
@@ -53,5 +66,54 @@
 
 {% endif %}
 </div>
+{% if topics.items %}
+<script>
+const checkboxes = document.querySelectorAll("input[name=topic_id]");
+const deleteButton = document.querySelector("#delete-selected");
+const selectAllCheckbox = document.querySelector("input[name=select_all]");
+
+deleteButton.addEventListener("click", function(e) {
+    const proceed = confirm(`Are you sure you want to delete it?`);
+    if (proceed) {
+    } else {
+        e.preventDefault();
+    }
+})
+
+selectAllCheckbox.addEventListener("change", function() {
+    checkboxes.forEach(function(checkbox) {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    if (selectAllCheckbox.checked) {
+        deleteButton.style.display = "block";
+    } else {
+        deleteButton.style.display = "none";
+    }
+});
+selectAllCheckbox.addEventListener("change", function() {
+    if (!selectAllCheckbox.checked) {
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = false;
+        });
+        deleteButton.style.display = "none";
+    }
+});
+checkboxes.forEach(function(checkbox) {
+    checkbox.addEventListener("change", function() {
+        const checkedCount = document.querySelectorAll("input[name=topic_id]:checked").length;
+        if (checkedCount > 0) {
+            deleteButton.style.display = "block";
+        } else {
+            deleteButton.style.display = "none";
+        }
+        if (checkedCount == checkboxes.length) {
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.checked = false;
+        }
+    });
+});
+</script>
+{% endif %}
 {% endblock %}
 

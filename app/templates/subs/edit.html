@@ -54,6 +54,7 @@
     </div>
     {% if subscription.deleted %}
     <div class="float-end px-2">
+        <a class='btn-sm btn-danger px-2'  id='prune_sub' href="{{ url_for('main_blueprint.prune_sub', id=subscription.id) }}">Prune</a>
     </div>  
     {% else %} 
     <input type="submit" value="Set">
@@ -62,4 +63,15 @@
     </div>
     {% endif %}
 </form>
+<script>
+    let prune_sub = document.getElementById('prune_sub');
+
+    prune_sub.onclick = (function (e) {
+        const proceed = confirm(`Are you sure you want to delete that subscription and all the assosciated data?`);
+        if (proceed) {
+        } else {
+            e.preventDefault();
+        }
+    })
+</script>
 {% endblock %}

@@ -66,7 +66,7 @@
     --bs-body-color: rgb(246, 149, 58);
     --bs-body-bg: #272b30;
   
-    --bs-body-new-color: rgb(237, 160, 89);
+    --bs-body-new-color: rgb(255, 146, 44);
     --bs-body-new-color-opaq: rgba(237, 160, 89, 0.5);
 
     --bs-body-new-page-link: rgb(255, 222, 192);
@@ -358,11 +358,10 @@
   button:focus:not(:focus-visible) {
     outline: 0;
   }
-  
-  input,
+
+   input,
   button,
   select,
-  optgroup,
   textarea {
     margin: 0;
     font-family: inherit;
@@ -371,7 +370,16 @@
     background-color: rgba(var(--bs-black-rgb), var(--bs-bg-opacity));
     color: var(--bs-body-new-page-link)
   }
-  
+
+    optgroup{
+        margin: 0;
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+      background-color: var(--bs-body-bg);
+      color: var(--bs-body-new-color);
+  }
+
   button,
   select {
     text-transform: none;
@@ -1990,15 +1998,15 @@
   }
   
   .table-primary {
-    --bs-table-bg: #3a3f44;
-    --bs-table-striped-bg: #44494d;
-    --bs-table-striped-color: #fff;
-    --bs-table-active-bg: #4e5257;
-    --bs-table-active-color: #fff;
-    --bs-table-hover-bg: #494d52;
-    --bs-table-hover-color: #fff;
-    color: #fff;
-    border-color: #4e5257;
+    --bs-table-bg: #2c2b2f;
+    --bs-table-striped-bg: #2c2f31;
+    --bs-table-striped-color: var(--bs-body-new-color);
+    --bs-table-active-bg: #30373f;
+    --bs-table-striped-color: var(--bs-body-new-color);
+    --bs-table-hover-bg: #292c30;
+    --bs-table-striped-color: var(--bs-body-new-color);
+    color: var(--bs-body-color);
+    border-color: #171819;
   }
   
   .table-secondary {
@@ -3101,7 +3109,7 @@
   }
   
   .btn-primary {
-    color: #fff;
+    color: var(--bs-body-new-color);
     background-color: #3a3f44;
     border-color: #3a3f44;
   }

@@ -23,7 +23,7 @@ import plotly
 from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, send_from_directory, url_for)
 from paho import mqtt
-from sqlalchemy import and_, text
+from sqlalchemy import and_, bindparam, text
 
 from app.models import (AlertCompOperators, AlertFunctions, AlertRule,
                         DataTypes, Mqtt, NotificationLog, TopicSubscription,
@@ -35,7 +35,7 @@ from . import (broadcast_json_lab_data, broadcast_notification_socketio,
                convert_single_data_type_data_to_fig, create_email,
                get_file_list, get_mqtt_data_from_to_by_id,
                get_mqtt_first_last_timestamp_as_json_by_id, get_topics_graph,
-               mqttc, send_email_thread, myemail, update_g_varaible)
+               mqttc, send_email_thread, myemail, update_g_varaible, timerBulkSave)
 
 main_blueprint = Blueprint("main_blueprint", __name__)
 
@@ -89,6 +89,22 @@ def delete_log(id):
         abort(404)
 
     return render_template("alerts/logs/delete.html", log=log)
+
+@main_blueprint.route("/log/<int:id>/delete_logs", methods=["POST"])
+def delete_logs(id):
+    log_ids = request.form.getlist("log_id")
+    deleted_logs = []
+    for log_id in log_ids:
+        log = NotificationLog.query.filter_by(id=log_id).first()
+        if log:
+            db.session.delete(log)
+            db.session.commit()
+            deleted_logs.append(log.id)
+        else:
+            flash(f"Log with ID {log_id} was not found in the database and could not be deleted.", "error")
+    if deleted_logs:
+        flash(f"The following logs have been deleted: {deleted_logs}", "success")
+    return redirect(url_for("main_blueprint.get_notification_logs", id=id, page=1))
 
 
 @main_blueprint.route("/topics/csv/", methods=["POST"])
@@ -397,6 +413,7 @@ def get_notification_logs(id, page=1):
             error_out=False)
     return render_template(
         "alerts/logs/list.html",
+        id = id,
         title=f"Alert {id} Log List",
         notification_logs=notification_logs,
     )
@@ -459,7 +476,7 @@ def get_all_subs():
 def edit_sub(id=-1):
     subscription = TopicSubscription.query.filter_by(id=id).first()
     if not subscription:
-        abort(404)
+        abort(404, description=f"Subscription with id {id} not found!")
     if request.method == "POST":
         subscribe = request.form.get("subscribe") or 0
         high_freq = request.form.get("high_freq") or 0
@@ -571,6 +588,56 @@ def delete_sub(id):
     return render_template("subs/delete.html", topic=topic)
 
 
+@main_blueprint.route("/subs/<int:id>/prune", methods=["GET", "POST"])
+def prune_sub(id):
+    topic = TopicSubscription.query.filter_by(id=id).first()
+    # Raw SQL takes ~1.7 seconds to fetch 500k elements
+    mqtt_data = db.session.execute(
+        text('''
+    SELECT id FROM mqtt WHERE (topic_id=:topic_id);
+    '''), {
+            'topic_id': topic.id
+        }).fetchall()
+    # SQLAlchemy takes around ¬22.0 seconds to fetch 500k elements
+    # mqtt_data = Mqtt.query.filter_by(topic_id=topic.id).all()
+
+    if topic and topic.deleted:
+        if mqtt_data:
+
+            # Remove the data from bulk save scheduler
+            timerBulkSave.mqtt_objects = [i for i in timerBulkSave.mqtt_objects if i.topic_id != topic.id]
+
+            # Delete all the associated mqtt data
+            start_time = datetime.datetime.now()
+            mqtt_data_ids = [item[0] for item in mqtt_data]
+            num_records = len(mqtt_data_ids)
+            delete_sql = "DELETE FROM mqtt WHERE id IN :ids"
+
+            # SQLITE has limit of variable number limit of 32765 
+            for i in range(0, num_records, 32765):
+                batch = (
+                    mqtt_data_ids[i : i + 32765]
+                    if i + 32765 < num_records
+                    else mqtt_data_ids[i:]
+                )
+                query = text(delete_sql).bindparams(
+                    bindparam("ids", expanding=True))
+                db.session.execute(query, {'ids': batch})
+            elapsed_time = datetime.datetime.now() - start_time
+            print(elapsed_time)
+            
+            db.session.commit()
+
+        # remove topic
+        db.session.delete(topic)
+        db.session.commit()
+
+        flash(f"Topic #{topic.id}:{topic.address} deleted successfully",
+              "success")
+        return redirect(url_for("main_blueprint.get_all_subs"))
+    return redirect(url_for("main_blueprint.get_all_subs"))
+
+
 @main_blueprint.route("/subs/<int:id>/switch_sub", methods=["GET"])
 def switch_subscription_sub(id):
     ts = db.session.query(TopicSubscription).filter_by(id=id).first()
@@ -614,6 +681,23 @@ def get_topics(page=1):
     return render_template("topics/list.html",
                            topics=topics,
                            title="MQTT Data")
+
+
+@main_blueprint.route("/topics/delete", methods=["POST"])
+def delete_topic():
+    topic_ids = request.form.getlist("topic_id")
+    deleted_topics = []
+    for id in topic_ids:
+        topic = Mqtt.query.filter_by(id=id).first()
+        if topic:
+            db.session.delete(topic)
+            db.session.commit()
+            deleted_topics.append(topic.id)
+        else:
+            flash(f"Topic with ID {id} was not found in the database and could not be deleted.", "error")
+    if deleted_topics:
+        flash(f"The following topics have been deleted: {deleted_topics}", "success")
+    return redirect(url_for("main_blueprint.get_topics"))
 
 
 ## Dash

@@ -1,6 +1,6 @@
 {% macro paginate_macro(pag_obj, url_for_name)%}
 <div class='pagination' id='pagination_div'>
-    <ul class="pagination justify-content-center">
+    <ul class="pagination justify-content-center mx-auto">
     {% for page in pag_obj.iter_pages() %}
         {% if page %}
             {% if page == pag_obj.page %}
@@ -20,7 +20,7 @@
 
 {% macro paginate_macro_params(pag_obj, url_for_name, id)%}
 <div class='pagination' id='pagination_div'>
-    <ul class="pagination justify-content-center">
+    <ul class="pagination justify-content-center mx-auto">
     {% for page in pag_obj.iter_pages() %}
         {% if page %}
             {% if page == pag_obj.page %}

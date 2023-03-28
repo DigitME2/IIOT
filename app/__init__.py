@@ -357,6 +357,8 @@ def init_app(config=None) -> Flask:
         with db.engine.connect() as connection:
             connection.execute(text("PRAGMA journal_mode = WAL"))
             connection.execute(text("PRAGMA synchronous = NORMAL"))
+            connection.execute(text("PRAGMA cache_size=-64000"))
+            connection.execute(text("PRAGMA page_size=32768;"))
             connection.close()
 
         # migrate.init_app(app, db)
@@ -474,6 +476,7 @@ def generate_default_data(app: Flask, db):
     gen_default_indexes(app, db)
     create_default_data(app)
     update_db(app, db)
+    
 
 
 # Subscribe to the list of tuples MQTT topics (mqtt_topic, qos_level)
