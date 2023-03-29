@@ -2000,11 +2000,13 @@ progress {
 .table-primary {
   --bs-table-bg: #2c2b2f;
   --bs-table-striped-bg: #2c2f31;
-  --bs-table-striped-color: var(--bs-body-new-color);
-  --bs-table-active-bg: #30373f;
-  --bs-table-striped-color: var(--bs-body-new-color);
-  --bs-table-hover-bg: #292c30;
-  --bs-table-striped-color: var(--bs-body-new-color);
+  --bs-table-border-color: #4e5257;
+  --bs-table-striped-bg: #44494d;
+  --bs-table-striped-color: rgb(255, 205, 141);
+  --bs-table-active-bg: #4e5257;
+  --bs-table-striped-color: rgb(255, 205, 141);
+  --bs-table-hover-bg: #494d52;
+  --bs-table-striped-color: rgb(255, 205, 141);
   color: var(--bs-body-color);
   border-color: #171819;
 }

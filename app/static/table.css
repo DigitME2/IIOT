@@ -1,21 +1,3 @@
-table, th, td {
-    border: 1px solid black;
-  }
-
-table{
-  margin: 5px;
-}
-
-td{
-  padding: 4px;
-}
-
-tr{
-  color: rgb(255, 205, 141);
-}
-
-tr:hover {background-color: #573101;} 
-
 #pagination_div{
   display: block;
   margin-left: auto;
