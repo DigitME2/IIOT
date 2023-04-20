@@ -8,6 +8,43 @@
 <hr>
 <h3>{{ title }}</h3>
 <hr>
+<section id="filter">
+    <b>Filters:</b>
+    <div class="filters">
+        <label for="datetime_from">Datetime from:</label>
+        {% if request.args.get('dt_from') %}
+        <input type="date" id="datetime_from" name="datetime_from" value="{{ request.args.get('dt_from') }}">
+        {% else %}
+        <input type="date" id="datetime_from" name="datetime_from">
+        {% endif %}
+
+        {% if request.args.get('dt_to') %}
+        <input type="date" id="datetime_to" name="datetime_to" value="{{ request.args.get('dt_to') }}">
+        {% else %}
+        <input type="date" id="datetime_to" name="datetime_to">
+        {% endif %}
+        <label for="topic_ids">Topic IDs:</label>
+        <select name="topic_ids" id="topic_ids">    
+            {% if request.args.get('topic_id') == 'All' or request.args.get('topic_id') == None %}
+                <option value="All" selected>All</option>
+            {% else %}
+                <option value="All">All</option>
+            {% endif %}
+            {% if subs %}
+                {% for s in subs %}
+                    {% if request.args.get('topic_id') | int == s.id %}
+                        <option value="{{ s.id }}" selected>{{ s.id }}:{{s.address}}</option>
+                    {% else %}
+                        <option value="{{ s.id }}">{{ s.id }}:{{s.address}}</option>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+          </select>
+        <button id="btn_set_filter">Set</button>
+        <button id='btn_export_csv' type="submit" value="Export CSV">Export CSV</button>
+        <a id="csv_link" href="" hidden>Download CSV</a>
+    </div>
+</section>
 <form action="{{ url_for('main_blueprint.delete_topic') }}" method="POST">
     <div>
         <div class="opacity-100">
@@ -66,7 +103,6 @@
 
 {% endif %}
 </div>
-{% if topics.items %}
 <script>
 const checkboxes = document.querySelectorAll("input[name=topic_id]");
 const deleteButton = document.querySelector("#delete-selected");
@@ -80,24 +116,28 @@ deleteButton.addEventListener("click", function(e) {
     }
 })
 
-selectAllCheckbox.addEventListener("change", function() {
-    checkboxes.forEach(function(checkbox) {
-        checkbox.checked = selectAllCheckbox.checked;
-    });
-    if (selectAllCheckbox.checked) {
-        deleteButton.style.display = "block";
-    } else {
-        deleteButton.style.display = "none";
-    }
-});
-selectAllCheckbox.addEventListener("change", function() {
-    if (!selectAllCheckbox.checked) {
+if (selectAllCheckbox != null)
+{
+    selectAllCheckbox.addEventListener("change", function() {
         checkboxes.forEach(function(checkbox) {
-            checkbox.checked = false;
+            checkbox.checked = selectAllCheckbox.checked;
         });
-        deleteButton.style.display = "none";
-    }
-});
+        if (selectAllCheckbox.checked) {
+            deleteButton.style.display = "block";
+        } else {
+            deleteButton.style.display = "none";
+        }
+    });
+    selectAllCheckbox.addEventListener("change", function() {
+        if (!selectAllCheckbox.checked) {
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = false;
+            });
+            deleteButton.style.display = "none";
+        }
+    });
+}
+
 checkboxes.forEach(function(checkbox) {
     checkbox.addEventListener("change", function() {
         const checkedCount = document.querySelectorAll("input[name=topic_id]:checked").length;
@@ -113,7 +153,35 @@ checkboxes.forEach(function(checkbox) {
         }
     });
 });
+
+
+let btn_set_filter = document.getElementById('btn_set_filter');
+
+btn_set_filter.addEventListener('click', function() {
+  var datetime_from = document.getElementById("datetime_from").value;
+  var datetime_to = document.getElementById("datetime_to").value;
+  var topic_id = document.getElementById("topic_ids").value;
+  
+  var params = new URLSearchParams(window.location.search);
+  if (datetime_from !== "") {
+    params.set("dt_from", datetime_from);
+  } else {
+    params.delete("dt_from");
+  }
+  if (datetime_to !== "") {
+    params.set("dt_to", datetime_to);
+  } else {
+    params.delete("dt_to");
+  }
+  if (topic_id !== "All") {
+    params.set("topic_id", topic_id);
+  } else {
+    params.delete("topic_id");
+  }
+  
+  window.location.search = params.toString();
+})
+
 </script>
-{% endif %}
 {% endblock %}
 

@@ -2,8 +2,8 @@
 {% block content %}
 <div class="container-fluid">
   {% if not subs%}
-  <a style="float: right" href="{{ url_for('main_blueprint.get_devices') }}">Auto Discover</a>
   <p id='no_notifications' class="lead">No Subscriptions defined</p>
+  <a class="btn text-decoration-underline btn-primary" href="{{ url_for('main_blueprint.get_devices') }}">Auto Discover</a>
   {% else %}
   <div class='col-lg'>
     <hr>

@@ -601,6 +601,9 @@ def delete_sub(id):
 @main_blueprint.route("/subs/<int:id>/prune", methods=["GET", "POST"])
 def prune_sub(id):
     topic = TopicSubscription.query.filter_by(id=id).first()
+    if topic is None:
+        return abort(404)
+        
     # Raw SQL takes ~1.7 seconds to fetch 500k elements
     mqtt_data = db.session.execute(
         text('''
@@ -684,12 +687,31 @@ def switch_subscription_sub(id):
 @main_blueprint.route("/topics/")
 @main_blueprint.route("/topics/<int:page>")
 def get_topics(page=1):
-    topics = Mqtt.query.order_by(Mqtt.id.desc()).paginate(
+    # Get parameter topic_id and dates
+    topic_id = request.args.get("topic_id", None, type=int)
+    dt_from = request.args.get("dt_from", None, type=str)
+    dt_to = request.args.get("dt_to", None, type=str)
+     # Filter by topic_id and dates if provided
+    query = Mqtt.query
+    if topic_id is not None:
+        query = query.filter_by(topic_id=topic_id)
+    if dt_from is not None:
+        query = query.filter(Mqtt.timestamp >= dt_from)
+    if dt_to is not None:
+        query = query.filter(Mqtt.timestamp <= dt_to)
+
+    # Order by id in descending order and paginate results
+    topics = query.order_by(Mqtt.id.desc()).paginate(
         page=page,
         per_page=current_app.config.get("TOPICS_PER_PAGE") or 50,
         error_out=False)
+
+    # Get all topic subscriptions
+    subs = TopicSubscription.query.all()
+
     return render_template("topics/list.html",
                            topics=topics,
+                           subs=subs,
                            title="MQTT Data")
 
 
