@@ -10,7 +10,7 @@ echo >> iiot_server.service
 echo [Service] >> iiot_server.service
 echo User="$USER" >> iiot_server.service
 echo WorkingDirectory="$PWD" >> iiot_server.service
-echo ExecStart="$PWD"/venv/bin/python3  "$PWD"/run_ubuntu.py >> iiot_server.service
+echo ExecStart="$PWD"/venv/bin/python3.11  "$PWD"/run_ubuntu.py >> iiot_server.service
 echo Restart=always >> iiot_server.service
 echo >> iiot_server.service
 echo [Install] >> iiot_server.service
@@ -30,9 +30,10 @@ echo =================
 echo Install virtualenv
 echo =================
 
-sudo apt-get -y install python3-virtualenv
+sudo add-apt-repository -y ppa:deadsnakes/ppa 
+sudo apt-get -y install python3.11
 
-virtualenv -p python3 venv
+virtualenv -p python3.11 venv
 
 echo =================
 echo Activate virtualenv
@@ -41,10 +42,17 @@ echo =================
 source venv/bin/activate
 
 echo =================
+echo Install pip
+echo =================
+
+sudo apt-get -y install python3-distutils
+sudo apt-get -y install python3-apt
+
+echo =================
 echo Install pip packages
 echo =================
 
-python3 -m pip install -r requirements.txt
+python3.11 -m pip install -r requirements.txt
 
 echo =================
 echo Update the packages list 

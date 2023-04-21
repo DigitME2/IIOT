@@ -14,8 +14,9 @@ source setup.sh
 Create virtual env:
 ```bash
 # On Linux
-sudo apt-get install python3.9-venv
-python3.9 -m venv venv
+sudo add-apt-repository ppa:deadsnakes/ppa 
+sudo apt-get install python3.11
+python3.11 -m venv venv
 source venv/bin/activate
 
 # On Windows
@@ -67,12 +68,12 @@ sudo systemctl restart mosquitto
 # How to run
 ```bash 
 # On Linux
-python3.9 run.py
-Running on http://localhost:5000/ (Press CTRL+C to quit)
+python3.11 run.py
+Running on http://localhost:5050/ (Press CTRL+C to quit)
 
 # On Windows
 python run.py
-Running on http://localhost:5000/ (Press CTRL+C to quit)
+Running on http://localhost:80/ (Press CTRL+C to quit)
 ```
 
 
@@ -89,7 +90,7 @@ After=network.target
 [Service]
 User=user
 WorkingDirectory=/home/user/iot
-ExecStart=/home/user/iot/venv/bin/python3 /home/user/iot/run_ubuntu.py
+ExecStart=/home/user/iot/venv/bin/python3.11 /home/user/iot/run_ubuntu.py
 Restart=always
 
 [Install]
