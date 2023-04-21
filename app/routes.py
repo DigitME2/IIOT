@@ -14,13 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import asyncio
+import csv
+import io
 import os
 import re
 import random
 import paho.mqtt.client as mqtt_client
 import pandas as pd
 import plotly
-from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
+from flask import (Blueprint, Response, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, send_from_directory, url_for)
 from paho import mqtt
 from sqlalchemy import and_, bindparam, text
@@ -682,6 +684,42 @@ def switch_subscription_sub(id):
 
 
 ## TOPICS (MQTT Data)
+
+@main_blueprint.route("/topics/export", methods=["GET"])
+async def export_mqtt_data():
+    # Get parameter topic_id and dates
+    topic_id = request.args.get("topic_id", None, type=int)
+    dt_from = request.args.get("dt_from", None, type=str)
+    dt_to = request.args.get("dt_to", None, type=str)
+
+     # Filter by topic_id and dates if provided
+    query = Mqtt.query
+    if topic_id is not None:
+        query = query.filter_by(topic_id=topic_id)
+    if dt_from is not None:
+        query = query.filter(Mqtt.timestamp >= dt_from)
+    if dt_to is not None:
+        query = query.filter(Mqtt.timestamp <= dt_to)
+
+    topics = query.order_by(Mqtt.id.desc()).all()
+
+    # If there is no data, return 404
+    if topics is None or len(topics) == 0:
+        return "No data to export", 404
+
+    # Create the CSV file
+    csv_file = io.StringIO()
+    writer = csv.writer(csv_file)
+    writer.writerow(['id','topic_id','address', 'value', 'timestamp'])
+
+    # Write the data
+    for topic in topics:
+        writer.writerow([topic.id, topic.topic_id, topic.topic, topic.value, topic.timestamp])
+
+    # Return the CSV file
+    response = Response(csv_file.getvalue(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename="scans.csv")
+    return response
 
 
 @main_blueprint.route("/topics/")

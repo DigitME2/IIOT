@@ -40,8 +40,8 @@
                 {% endfor %}
             {% endif %}
           </select>
-        <button id="btn_set_filter">Set</button>
-        <button id='btn_export_csv' type="submit" value="Export CSV">Export CSV</button>
+        <button id="btn_set_filter" class="btn text-decoration-underline btn-primary">Set</button>
+        <button id='btn_export_csv' class="btn text-decoration-underline btn-primary" type="submit" value="Export CSV">Export CSV</button>
         <a id="csv_link" href="" hidden>Download CSV</a>
     </div>
 </section>
@@ -181,6 +181,61 @@ btn_set_filter.addEventListener('click', function() {
   
   window.location.search = params.toString();
 })
+
+let btn_export_csv = document.getElementById('btn_export_csv');
+let a_csv_link = document.getElementById('csv_link');
+
+btn_export_csv.addEventListener('click', async function() {
+    console.log("export csv")
+    let datetime_from = document.getElementById("datetime_from").value;
+    let datetime_to = document.getElementById("datetime_to").value;
+    let topic_id = document.getElementById("topic_ids").value;
+    btn_export_csv.setAttribute('disabled', 'true');
+    let result = await exportCSV(topic_id, datetime_from, datetime_to)
+    btn_export_csv.removeAttribute('disabled')
+  })
+
+
+  async function exportCSV(topic_id, dt_from, dt_to)
+  {
+    try{
+      let URLParams = new URLSearchParams(window.location.search);
+
+      URLParams.set("topic_id", topic_id);
+      if (topic_id !== "" || topic_id !== "All") {
+        URLParams.set("topic_id", topic_id);
+      } else {
+        URLParams.delete("topic_id");
+      }
+
+      if (dt_from !== "") {
+        URLParams.set("dt_from", dt_from);
+      } else {
+        URLParams.delete("dt_from");
+      }
+
+      if(dt_to !== "") {
+        URLParams.set("dt_to", dt_to);
+      } else {
+        URLParams.delete("dt_to");
+      }
+      const response = await fetch(`/topics/export?${URLParams.toString()}`, { method: 'GET', headers: { 'Content-Type': 'text/csv; charset=utf-8' } });
+      if(response.status != 200)
+      {
+        a_csv_link.textContent = "No data to export";
+        a_csv_link.removeAttribute('hidden')
+        return null;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+
+      a_csv_link.setAttribute('href', url);
+      a_csv_link.removeAttribute('hidden')
+    }catch (err) {
+      console.error(err);
+      return null;
+    }
+  }
 
 </script>
 {% endblock %}

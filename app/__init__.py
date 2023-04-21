@@ -530,22 +530,22 @@ def init_mqtt(app: Flask) -> mqtt.Client:
                         TopicSubscription.address == msg.topic).filter(
                             TopicSubscription.deleted == False).first()
 
-                timestamp = datetime.datetime.now(datetime.timezone.utc)
+                server_timestamp = datetime.datetime.now(datetime.timezone.utc)
                 if topic_subscription.data_type == 'single':
-                    if store_single_mqtt_record(topic_subscription, value, timestamp):
-                        check_alerts_for_single_value(topic_subscription, value, timestamp)
+                    if store_single_mqtt_record(topic_subscription, value, server_timestamp):
+                        check_alerts_for_single_value(topic_subscription, value, server_timestamp)
 
                 elif topic_subscription.data_type == 'json':
                     json_obj = ast.literal_eval(value)
                     if store_json_mqtt_record(topic_subscription, json_obj):
-                        broadcast_json_data(value, topic_subscription.id, topic_subscription.address, str(timestamp))
-                        check_alerts_for_json_value(topic_subscription, json_obj, timestamp)
+                        broadcast_json_data(value, topic_subscription.id, topic_subscription.address, str(server_timestamp))
+                        check_alerts_for_json_value(topic_subscription, json_obj, server_timestamp)
                 elif topic_subscription.data_type == 'csv':
                     store_mqtt_record(topic_subscription,
-                                      value.splitlines()[0], timestamp)
+                                      value.splitlines()[0], server_timestamp)
                 elif topic_subscription.data_type == 'json_lab':
                     # Get timestamp from json_lab object (messageID), if failed get the timestamp from server
-                    json_obj_datetime = get_datetime_from_json_lab(value, timestamp)
+                    json_obj_datetime = get_datetime_from_json_lab(value, server_timestamp)
                     if store_mqtt_record(topic_subscription, value, json_obj_datetime):
                         broadcast_json_lab_data(value, topic_subscription.address,
                                             str(json_obj_datetime),
@@ -864,8 +864,7 @@ def broadcast_json_lab_data(json_data: str, address: str, timestamp: str,
         'address': address,
         'timestamp': timestamp,
         'topic_id': topic_id
-    },
-                  broadcast=True)
+    }, broadcast=True)
 
 
 # Socketio

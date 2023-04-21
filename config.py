@@ -18,8 +18,7 @@ import os
 
 class Config(object):
     # Flask
-    SECRET_KEY = os.environ.get(
-        "SECRET_KEY") or "xRPiSTZuWUT0L2VDspYSUpNMbRi2ta8hsdf"
+    SECRET_KEY = os.environ.get("SECRET_KEY") or "ASikOCDu23gyo4213V6SR543e9neOMzcY"
     FLASK_APP = os.environ.get("FLASK_APP")
     FLASK_ENV = os.environ.get('FLASK_ENV') or 'production'
     ENV = os.environ.get('ENV') or 'production'
@@ -54,7 +53,7 @@ class Config(object):
     TOPICS_PER_PAGE = 50
 
     # MQTT SPECIFIC
-    # MQTT_URL = "10.30.47.12"
+    # MQTT_URL = "10.30.47.41"
     MQTT_URL = "127.0.0.1"
     MQTT_TOPIC_PING_DEVICES = "esp32config/PING"
     MQTT_TOPIC_PING_RESPONSE_DEVICES = "dm2/devices"
@@ -65,8 +64,7 @@ class Config(object):
 
 class TestConfig(object):
     # Flask
-    SECRET_KEY = os.environ.get(
-        "SECRET_KEY") or "xRPiSTZuWUT0L2VDspYSUpNMbRi2ta8hsdf"
+    SECRET_KEY = os.environ.get("SECRET_KEY") or "ASikOCDu23gyo4213V6SR543e9neOMzcY"
     FLASK_APP = os.environ.get("FLASK_APP")
     FLASK_ENV = os.environ.get("FLASK_ENV") or "production"
     ENV = os.environ.get("ENV") or "production"
