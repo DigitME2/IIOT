@@ -49,9 +49,9 @@
             {% endif %}
             <td>{{ sub.id }}</td>
             {% if sub.deleted %}
-              <td class="sub_address_deleted">{{ sub.address }}</td>
+              <td class="sub_address deleted">{{ sub.address }}</td>
             {% else %}
-              <td class="sub_address">{{ sub.address }}</td>
+              <td class="sub_address valid">{{ sub.address }}</td>
             {% endif %}
             <td>{{ sub.columns or ""}}</td>
             <td><a href="{{ url_for('main_blueprint.switch_subscription_sub', id=sub.id)}}">{{ sub.subscribe }}</a></td>
@@ -446,7 +446,7 @@
       console.log('data');
       console.log(data);
 
-      topicsArray = Array.from(document.getElementsByClassName('sub_address')).map(s => s.innerText);
+      topicsArray = Array.from(document.getElementsByClassName('sub_address valid')).map(s => s.innerText);
       console.log("topicsArray")
       console.log(topicsArray)
 

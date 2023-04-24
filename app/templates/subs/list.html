@@ -22,7 +22,16 @@
   </div>
     <hr>
     <div>
-      <span for="checkbox_show_deleted">Show deleted: </span><input type="checkbox" id="checkbox_show_deleted" name="checkbox_show_deleted" checked>
+      <section id="filter">
+        <b>Filters:</b>
+        <div class="filters">
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" placeholder="Search by address or ID"
+              aria-label="Search by address or ID" id="search-input">
+          </div>
+          <span for="checkbox_show_deleted">Show deleted: </span><input type="checkbox" id="checkbox_show_deleted" name="checkbox_show_deleted" checked>
+        </div>
+      </section>
     </div>
     <table class="table table-primary table-striped table-hover table-bordered">
       <thead>
@@ -47,7 +56,7 @@
         {% endif %}
           <td class="sub_id">{{ sub.id }}</td>
         {% if sub.deleted %}
-          <td class="sub_address_deleted">{{ sub.address }}</td>
+          <td class="sub_address">{{ sub.address }}</td>
         {% else %}
           <td class="sub_address">{{ sub.address }}</td>
         {% endif %}
@@ -103,24 +112,9 @@
     <input type='submit' value='Submit' class='btn btn-primary'>
   </form>
   <script>
-    $(document).ready(function () {
-      let checkbox_show_deleted = document.getElementById('checkbox_show_deleted');
-      if(checkbox_show_deleted.checked)
-      {
-        $('.sub_deleted').show();
-      }
-      else
-      {
-        $('.sub_deleted').hide();
-      }
-      $('#select_data_types').change()
-      defined_addresses = Array.from(document.getElementsByClassName('sub_address')).map(s => s.innerText);
-
-    })
-
-    $('#checkbox_show_deleted').change(function () {
-      $('.sub_deleted').toggle();
-    })
+    let checkboxShowDeleted = document.getElementById('checkbox_show_deleted');
+    let searchInput = document.getElementById('search-input');
+    let tableContainer = document.querySelector('.table');
 
     $('#address').on('input', function () {
 
@@ -160,5 +154,50 @@
         $('#columns').val('')
       }
     })
+
+    checkboxShowDeleted.addEventListener('change', function () {
+      const enableDeleted = this.checked;
+      $('.sub_deleted').toggle(enableDeleted);
+
+      const query = `tbody .sub_valid${enableDeleted ? ', tbody .sub_deleted' : ''}`;
+
+      tableContainer.querySelectorAll(query).forEach(function (row) {
+        if (enableDeleted || !row.classList.contains('sub_deleted')) {
+          const address = row.querySelector('.sub_address').textContent.trim().toLowerCase();
+          const subId = row.querySelector('.sub_id').textContent.trim().toLowerCase();
+
+          const matchesSearch = address.includes(searchInput.value.toLowerCase().trim()) || subId.includes(searchInput.value.toLowerCase().trim());
+
+          if (matchesSearch) {
+            row.style.display = '';
+          }
+          else {
+            row.style.display = 'none';
+          }
+        }
+      });
+    });
+
+    searchInput.addEventListener('input', function () {
+      const query = `tbody .sub_valid${checkboxShowDeleted.checked ? ', tbody .sub_deleted' : ''}`;
+
+      tableContainer.querySelectorAll(query).forEach(function (row) {
+        if (checkboxShowDeleted.checked || !row.classList.contains('sub_deleted')) {
+          const address = row.querySelector('.sub_address').textContent.trim().toLowerCase();
+          const subId = row.querySelector('.sub_id').textContent.trim().toLowerCase();
+
+          const matchesSearch = address.includes(searchInput.value.toLowerCase().trim()) || subId.includes(searchInput.value.toLowerCase().trim());
+          if (matchesSearch) {
+            row.style.display = '';
+          }
+          else {
+            row.style.display = 'none';
+          }
+        }
+      });
+    });
+
+
+
   </script>
   {% endblock %}
