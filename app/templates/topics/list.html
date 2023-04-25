@@ -41,7 +41,7 @@
             {% endif %}
           </select>
         <button id="btn_set_filter" class="btn text-decoration-underline btn-primary">Set</button>
-        <button id='btn_export_csv' class="btn text-decoration-underline btn-primary" type="submit" value="Export CSV">Export CSV</button>
+        <button id='btn_export_csv' class="btn text-decoration-underline btn-primary" type="submit" value="Export CSV">Export CSV <span id="loading_spinner" class="spinner-border spinner-border-sm d-none"></span></button>
         <a id="csv_link" href="" hidden>Download CSV</a>
     </div>
 </section>
@@ -191,7 +191,9 @@ btn_export_csv.addEventListener('click', async function() {
     let datetime_to = document.getElementById("datetime_to").value;
     let topic_id = document.getElementById("topic_ids").value;
     btn_export_csv.setAttribute('disabled', 'true');
+    document.getElementById("loading_spinner").classList.remove("d-none");
     let result = await exportCSV(topic_id, datetime_from, datetime_to)
+    document.getElementById("loading_spinner").classList.add("d-none");
     btn_export_csv.removeAttribute('disabled')
   })
 
@@ -223,9 +225,12 @@ btn_export_csv.addEventListener('click', async function() {
       if(response.status != 200)
       {
         a_csv_link.textContent = "No data to export";
+        a_csv_link.setAttribute('href', '#');
         a_csv_link.removeAttribute('hidden')
         return null;
       }
+      a_csv_link.textContent = "Download CSV";
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(new Blob([blob]));
 
