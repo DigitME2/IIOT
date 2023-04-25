@@ -19,7 +19,7 @@
               Devices
             </div>
             <div class="col">
-              <button class="btn btn-primary" id='button_refresh'>Refresh</button>
+              <button class="btn btn-primary" id='button_refresh'>Refresh <span id="loading_spinner" class="spinner-border spinner-border-sm d-none"></span></button>
             </div>
             <div class="col">
             </div>
@@ -431,10 +431,9 @@
     document.getElementById('loader').style.display = '';
     document.getElementById('button_refresh').disabled = true;
     document.getElementById('table').innerHTML = "";
+    document.getElementById('loading_spinner').classList.remove("d-none");
 
     requestDevices('devices/get', { refresh: true }).then((data) => {
-      document.getElementById('button_refresh').disabled = false;
-      document.getElementById('loader').style.display = 'none';
 
       var html = "";
 
@@ -464,6 +463,10 @@
 
     }).catch((error) => {
       console.log(error);
+      document.getElementById('button_refresh').disabled = false;
+      document.getElementById('loader').style.display = 'none';
+    }).finally((e) => {
+      document.getElementById('loading_spinner').classList.add("d-none");
       document.getElementById('button_refresh').disabled = false;
       document.getElementById('loader').style.display = 'none';
     })

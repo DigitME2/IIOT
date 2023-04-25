@@ -25,6 +25,7 @@
         {% endif %}
         <label for="topic_ids">Topic IDs:</label>
         <select name="topic_ids" id="topic_ids">    
+          {% if not id %}
             {% if request.args.get('topic_id') == 'All' or request.args.get('topic_id') == None %}
                 <option value="All" selected>All</option>
             {% else %}
@@ -39,6 +40,13 @@
                     {% endif %}
                 {% endfor %}
             {% endif %}
+          {% else %}
+            {% if request.args.get('topic_id') | int == id %}
+                <option value="{{ id }}" selected>{{ id }}</option>
+            {% else %}
+                <option value="{{ id }}">{{ id }}</option>
+            {% endif %}
+          {% endif %}
           </select>
         <button id="btn_set_filter" class="btn text-decoration-underline btn-primary">Set</button>
         <button id='btn_export_csv' class="btn text-decoration-underline btn-primary" type="submit" value="Export CSV">Export CSV <span id="loading_spinner" class="spinner-border spinner-border-sm d-none"></span></button>
