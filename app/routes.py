@@ -537,11 +537,21 @@ def get_sub(id):
 def get_sub_mqtt_logs(id, page=1):
     subscription = TopicSubscription.query.filter_by(id=id).first()
     if subscription:
-        mqtt_data = (Mqtt.query.order_by(
-            Mqtt.id.desc()).filter_by(topic_id=subscription.id).paginate(
-                page=page,
-                per_page=current_app.config.get("TOPICS_PER_PAGE") or 50,
-                error_out=False))
+        dt_from = request.args.get("dt_from", None, type=str)
+        dt_to = request.args.get("dt_to", None, type=str)
+        # Filter by topic_id and dates if provided
+        query = Mqtt.query
+        query = query.filter_by(topic_id=id)
+        if dt_from is not None:
+            query = query.filter(Mqtt.timestamp >= dt_from)
+        if dt_to is not None:
+            query = query.filter(Mqtt.timestamp <= dt_to)
+
+        # Order by id in descending order and paginate results
+        mqtt_data = query.order_by(Mqtt.id.desc()).paginate(
+            page=page,
+            per_page=current_app.config.get("TOPICS_PER_PAGE") or 50,
+            error_out=False)
 
     return render_template(
         "topics/list.html",
