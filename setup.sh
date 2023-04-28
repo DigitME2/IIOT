@@ -32,14 +32,15 @@ echo =================
 
 sudo add-apt-repository -y ppa:deadsnakes/ppa 
 sudo apt-get -y install python3.11
+sudo apt-get -y install python3.11-pip
 
-virtualenv -p python3.11 venv
+python3 -m venv venv
 
 echo =================
 echo Activate virtualenv
 echo =================
 
-source venv/bin/activate
+. venv/bin/activate
 
 echo =================
 echo Install pip
