@@ -38,8 +38,8 @@
         <td>{{ a.notify_by_email }}</td>        
         <td>{{ a.email or '' }}</td>        
         <td>{{ a.email_cooldown }}</td>
-        <td>{{ a.created_on }}</td>
-        <td>{{ a.updated_on }}</td>
+        <td class="alert_created_on">{{ a.created_on }}</td>
+        <td class="alert_updated_on">{{ a.updated_on }}</td>
         <td><a href="{{ url_for('main_blueprint.get_notification_logs', id=a.id, page=1) }}">View logs</a></td>
         <td><a href="{{ url_for('main_blueprint.edit_rule', id=a.id) }}">Edit</a></td>
     </tr>
@@ -50,6 +50,28 @@
 {% endif %}
       <a href="{{ url_for('main_blueprint.add_rule') }}"><h5>Add Alert Rule</h5></a><hr>
     <script>
+    const alert_created_on = document.querySelectorAll('.alert_created_on');
+    const alert_updated_on = document.querySelectorAll('.alert_updated_on');
+
+    function convertUTCToLocal(timestamp) {
+        // Check if there is 'Z' at the end, if not add it
+        if (timestamp.slice(-1) !== 'Z') {
+            timestamp += 'Z';
+        }
+
+        const date = new Date(timestamp);
+        const localTimeString = date.toLocaleString();
+        return localTimeString;
+    }
+
+    alert_created_on.forEach(function (item) {
+        item.innerHTML = convertUTCToLocal(item.innerHTML);
+    });
+
+    alert_updated_on.forEach(function (item) {
+        item.innerHTML = convertUTCToLocal(item.innerHTML);
+    });
+
     $('#select_topic_options').on('change', function(e){
         var form = $(this).closest('form');
         var id = $(this).find(':selected').data('id')

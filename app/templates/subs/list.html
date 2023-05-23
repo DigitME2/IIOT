@@ -69,7 +69,7 @@
           <td class="sub_data_type">{{ sub.data_type }} </td>
           <td class="sub_created_on">{{ sub.created_on }}</td>
           <td class="sub_updated_on">{{ sub.updated_on }}</td>
-          <td><a class="sub_view_logs" href="{{ url_for('main_blueprint.get_sub_mqtt_logs', id=sub.id, page=1) }}">View logs</a></td>
+          <td><a class="sub_view_logs" href="{{ url_for('main_blueprint.get_sub_mqtt_logs', id=sub.id) }}">View logs</a></td>
           <td class="sub_actions">
             <a class="sub_action_edit_sub" href="{{ url_for('main_blueprint.edit_sub', id=sub.id) }}">Edit</a>
             <a class="sub_action_visualise" href="{{ url_for('main_blueprint.get_dash', address=sub.address, id=sub.id) }}">Visualise</a>
@@ -115,6 +115,29 @@
     let checkboxShowDeleted = document.getElementById('checkbox_show_deleted');
     let searchInput = document.getElementById('search-input');
     let tableContainer = document.querySelector('.table');
+
+    let sub_created_on = document.querySelectorAll('.sub_created_on')
+    let sub_updated_on = document.querySelectorAll('.sub_updated_on')
+
+
+    function convertUTCToLocal(timestamp) {
+      // Check if there is 'Z' at the end, if not add it
+      if (timestamp.slice(-1) !== 'Z') {
+          timestamp += 'Z';
+      }
+
+      const date = new Date(timestamp);
+      const localTimeString = date.toLocaleString();
+      return localTimeString;
+   }
+
+   sub_created_on.forEach(function (item) {
+      item.innerHTML = convertUTCToLocal(item.innerHTML)
+   })
+
+   sub_updated_on.forEach(function (item) {
+      item.innerHTML = convertUTCToLocal(item.innerHTML)
+   })
 
     $('#address').on('input', function () {
 

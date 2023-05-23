@@ -26,7 +26,7 @@
               <td>{{ log.id }}</td>
               <td>{{ log.message }}</td>
               <td><a href="{{ url_for('main_blueprint.edit_sub', id=log.alert_rule.topic_id) }}">{{ log.alert_rule.topic_id }}:{{ log.address }}</a></td>      
-              <td>{{ log.timestamp }}</td>
+              <td class="log_timestamp">{{ log.timestamp }}</td>
               {% if log.alert_rule.id %}
                 <td><a href="{{ url_for('main_blueprint.get_notification_logs', id=log.alert_rule.id, page=1) }}">View logs for alert #{{ log.notification_alert_id }}</a></td>
               {% else %}
@@ -70,7 +70,26 @@
 
 <script>
 
+const log_timestamp = document.querySelectorAll('.log_timestamp');
+
+function convertUTCToLocal(timestamp) {
+        // Check if there is 'Z' at the end, if not add it
+        if (timestamp.slice(-1) !== 'Z') {
+            timestamp += 'Z';
+        }
+
+        const date = new Date(timestamp);
+        const localTimeString = date.toLocaleString();
+        return localTimeString;
+    }
+
+log_timestamp.forEach(function(element) {
+  element.innerHTML = convertUTCToLocal(element.innerHTML);
+});
+
 function createNotificationToast(notification){
+  notification.timestamp = convertUTCToLocal(notification.timestamp);
+  
   row_html = `${notification.id}
     ${notification.message}
     ${notification.address}

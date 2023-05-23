@@ -83,13 +83,13 @@
             <td><a href="/subs/{{ topic.topic_id }}/edit">{{ topic.topic_id }}</a></td>
             <td><a href="/subs/{{ topic.topic_id }}/edit">{{ topic.topic }}</a></td>
             <td>{{ topic.value }}</td>
-            <td>{{ topic.timestamp }}</td>
+            <td class="topic_timestamp">{{ topic.timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f%z') }}</td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
 </form>
-    
+      
     {# {% if topics.has_prev %}
         <a href="{{ url_for('main_blueprint.get_topics', page=1) }}">&laquo; first</a>
         <a href="{{ url_for('main_blueprint.get_topics', page=topics.prev_num) }}">{{topics.prev_num}}</a>
@@ -104,9 +104,9 @@
     {% endif %} #}
     
     {% if id %}
-       {{ macros.paginate_macro_params(topics, 'main_blueprint.get_sub_mqtt_logs', id)}}
+       {{ macros.paginate_extra_args_id(topics, 'main_blueprint.get_sub_mqtt_logs', id)}}
     {% else %}
-        {{ macros.paginate_macro(topics, 'main_blueprint.get_topics')}}
+        {{ macros.paginate_extra_args(topics, 'main_blueprint.get_topics')}}
     {% endif %}
 
 {% endif %}
@@ -115,6 +115,31 @@
 const checkboxes = document.querySelectorAll("input[name=topic_id]");
 const deleteButton = document.querySelector("#delete-selected");
 const selectAllCheckbox = document.querySelector("input[name=select_all]");
+const datetime_from = document.getElementById("datetime_from");
+const datetime_to = document.getElementById("datetime_to");
+const btn_set_filter = document.getElementById('btn_set_filter');
+const btn_export_csv = document.getElementById('btn_export_csv');
+const a_csv_link = document.getElementById('csv_link');
+
+function convertUTCToLocal(timestamp) {
+    // Check if there is 'Z' at the end, if not add it
+    if (timestamp.slice(-1) !== 'Z') {
+        timestamp += 'Z';
+    }
+
+    const date = new Date(timestamp);
+    const localTimeString = date.toLocaleString();
+    return localTimeString;
+}
+
+const timestampElement = document.querySelectorAll('.topic_timestamp');
+
+timestampElement.forEach(function(element) {
+    const utcTimestamp = element.textContent;
+    const localTimeString = convertUTCToLocal(utcTimestamp);
+    element.textContent = localTimeString;
+});
+
 
 deleteButton.addEventListener("click", function(e) {
     const proceed = confirm(`Are you sure you want to delete it?`);
@@ -163,21 +188,17 @@ checkboxes.forEach(function(checkbox) {
 });
 
 
-let btn_set_filter = document.getElementById('btn_set_filter');
-
 btn_set_filter.addEventListener('click', function() {
-  var datetime_from = document.getElementById("datetime_from").value;
-  var datetime_to = document.getElementById("datetime_to").value;
   var topic_id = document.getElementById("topic_ids").value;
   
   var params = new URLSearchParams(window.location.search);
-  if (datetime_from !== "") {
-    params.set("dt_from", datetime_from);
+  if (datetime_from.value !== "") {
+    params.set("dt_from", datetime_from.value);
   } else {
     params.delete("dt_from");
   }
-  if (datetime_to !== "") {
-    params.set("dt_to", datetime_to);
+  if (datetime_to.value !== "") {
+    params.set("dt_to", datetime_to.value);
   } else {
     params.delete("dt_to");
   }
@@ -187,20 +208,37 @@ btn_set_filter.addEventListener('click', function() {
     params.delete("topic_id");
   }
   
+  params.delete("page")
   window.location.search = params.toString();
 })
 
-let btn_export_csv = document.getElementById('btn_export_csv');
-let a_csv_link = document.getElementById('csv_link');
+
 
 btn_export_csv.addEventListener('click', async function() {
-    console.log("export csv")
-    let datetime_from = document.getElementById("datetime_from").value;
-    let datetime_to = document.getElementById("datetime_to").value;
+    console.log("export csv");
     let topic_id = document.getElementById("topic_ids").value;
     btn_export_csv.setAttribute('disabled', 'true');
     document.getElementById("loading_spinner").classList.remove("d-none");
-    let result = await exportCSV(topic_id, datetime_from, datetime_to)
+    // To prevent sending huge amounts of data and hanging up the server, we can only export up to 365 days of data. 
+    if (datetime_from.value === "" || datetime_to.value === "") {
+      alert("Please select a date range no more than 365 days apart.");
+      btn_export_csv.removeAttribute('disabled')
+      document.getElementById("loading_spinner").classList.add("d-none");
+      return;
+    }
+
+    let dt_from = new Date(datetime_from.value);
+    let dt_to = new Date(datetime_to.value);
+    let diff = Math.abs(dt_to - dt_from);
+    let diff_days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    if (diff_days > 365) {
+      alert("You can only export up to 365 days of data. Please select a smaller date range.");
+      btn_export_csv.removeAttribute('disabled')
+      document.getElementById("loading_spinner").classList.add("d-none");
+      return;
+    }
+
+    let result = await exportCSV(topic_id, datetime_from.value, datetime_to.value)
     document.getElementById("loading_spinner").classList.add("d-none");
     btn_export_csv.removeAttribute('disabled')
   })

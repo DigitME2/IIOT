@@ -37,3 +37,46 @@
     </ul>
 </div>
 {% endmacro %}
+
+{% macro paginate_extra_args(pag_obj, url_for_name) %}
+<div class='pagination' id='pagination_div'>
+  <ul class="pagination justify-content-center mx-auto">
+    {% for page in pag_obj.iter_pages() %}
+      {% if page %}
+        {% set updated_args = request.args.to_dict() %}
+        {% set _ = updated_args.update({'page': page}) %}
+        {% set query_string = '?' ~ updated_args|urlencode %}
+        {% set url = url_for(url_for_name) ~ query_string %}
+        <li class="page-item{% if page == pag_obj.page %} active{% endif %}">
+          <a class="page-link" href="{{ url }}">{{ page }}</a>
+        </li>
+      {% else %}
+        <span class="ellipsis" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">…</span>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</div>
+{% endmacro %}
+
+{% macro paginate_extra_args_id(pag_obj, url_for_name, id) %}
+<div class='pagination' id='pagination_div'>
+  <ul class="pagination justify-content-center mx-auto">
+    {% for page in pag_obj.iter_pages() %}
+      {% if page %}
+        {% set updated_args = request.args.to_dict() %}
+        {% set _ = updated_args.update({'page': page}) %}
+        {% set query_string = '?' ~ updated_args|urlencode %}
+        {% set url = url_for(url_for_name, id=id) ~ query_string %}
+        <li class="page-item{% if page == pag_obj.page %} active{% endif %}">
+          <a class="page-link" href="{{ url }}">{{ page }}</a>
+        </li>
+      {% else %}
+        <span class="ellipsis" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">…</span>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</div>
+{% endmacro %}
+
+
+

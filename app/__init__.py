@@ -18,6 +18,7 @@ import ast
 import logging
 import os
 import sqlite3
+import time
 import traceback
 import urllib
 from io import StringIO
@@ -438,11 +439,18 @@ def init_app(config=None) -> Flask:
             df_topic = pd.read_sql_query(df_topic_query.statement,
                                          db.session.connection())
 
+            # get offset from time zone
+            timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
+            offset_timedelta = pd.Timedelta(seconds=-timezone_offset)
+
+            df_topic['timestamp'] += offset_timedelta            
             if df_topic.empty:
                 fig_topic = empty_layout()
                 is_updating = False
                 return 'Refreshed At: ' + str(datetime.datetime.now().strftime(
                     "%Y-%m-%d %H:%M:%S")), fig_topic
+            
+
 
             topic_subscription = TopicSubscription.query.filter_by(
                 id=topic_id).first()
@@ -841,8 +849,7 @@ def broadcast_notification_socketio(notification: NotificationLog):
         'notification_alert': str(notification_alert),
         'rule_id': str(f'#{str(notification.alert_rule.id)}'),
         'topic_id': notification.alert_rule.topic_id
-    },
-                  broadcast=True)
+    })
 
 
 def broadcast_json_data(json_data: str, topic_id: Union[int, str],

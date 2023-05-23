@@ -22,6 +22,7 @@ import random
 import paho.mqtt.client as mqtt_client
 import pandas as pd
 import plotly
+import time
 from flask import (Blueprint, Response, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, send_from_directory, url_for)
 from paho import mqtt
@@ -155,6 +156,12 @@ def get_static_graph():
             if selected_sub.data_type == "single":
                 df_records = get_mqtt_data_from_to_by_id(
                     id, date_from, date_to)
+                
+                timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
+                offset_timedelta = pd.Timedelta(seconds=-timezone_offset)
+
+                df_records['timestamp'] += offset_timedelta          
+
                 fig_topic = convert_single_data_type_data_to_fig(df_records)
                 mqtt_graph = json.dumps(fig_topic,
                                         cls=plotly.utils.PlotlyJSONEncoder)
@@ -173,6 +180,11 @@ def get_static_graph():
                     columns = json.loads(selected_sub.columns)
                 df_records = get_mqtt_data_from_to_by_id(
                     id, date_from, date_to)
+                
+                timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
+                offset_timedelta = pd.Timedelta(seconds=-timezone_offset)
+
+                df_records['timestamp'] += offset_timedelta          
                 fig_topic = convert_json_data_to_fig(df_records, columns)
                 mqtt_graph = json.dumps(fig_topic,
                                         cls=plotly.utils.PlotlyJSONEncoder)
@@ -533,12 +545,14 @@ def get_sub(id):
     return ""
 
 
-@main_blueprint.route("/subs/<int:id>/logs/<int:page>", methods=["GET"])
+@main_blueprint.route("/subs/<int:id>/logs/", methods=["GET"])
 def get_sub_mqtt_logs(id, page=1):
     subscription = TopicSubscription.query.filter_by(id=id).first()
     if subscription:
         dt_from = request.args.get("dt_from", None, type=str)
         dt_to = request.args.get("dt_to", None, type=str)
+        page = request.args.get("page", 1, type=int)
+
         # Filter by topic_id and dates if provided
         query = Mqtt.query
         query = query.filter_by(topic_id=id)
@@ -733,12 +747,12 @@ async def export_mqtt_data():
 
 
 @main_blueprint.route("/topics/")
-@main_blueprint.route("/topics/<int:page>")
-def get_topics(page=1):
+def get_topics():
     # Get parameter topic_id and dates
     topic_id = request.args.get("topic_id", None, type=int)
     dt_from = request.args.get("dt_from", None, type=str)
     dt_to = request.args.get("dt_to", None, type=str)
+    page = request.args.get("page", 1, type=int)
      # Filter by topic_id and dates if provided
     query = Mqtt.query
     if topic_id is not None:
