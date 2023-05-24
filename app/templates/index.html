@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+<audio id="audio" src="" type="audio/mpeg"></audio>
 <link rel="stylesheet" href="{{ url_for('static', filename='table.css') }}">
 <div class="toast-container position-absolute w-100 p-4 d-flex flex-column align-items-end" id="toast-container">
 </div>
@@ -69,7 +70,7 @@
 
 
 <script>
-
+const audio = document.getElementById("audio");
 const log_timestamp = document.querySelectorAll('.log_timestamp');
 
 function convertUTCToLocal(timestamp) {
@@ -128,8 +129,14 @@ socket.on('notification', function(msg) {
     console.log('Received socket message: ');
     console.log(msg);
 
+    // Create notification toast
     createNotificationToast(msg);
-    
+
+    // Play notification sound
+    audio.pause();
+    audio.src = msg.sound;
+    audio.play();
+
     row_html = `<tr>
     <td>${msg.id}</td>
     <td>${msg.message}</td>

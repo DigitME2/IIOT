@@ -469,13 +469,13 @@ def init_app(config=None) -> Flask:
     app.logger.info('Server started!')
     return app
 
-def update_db(app, db):
+def update_db(app, db, exec_text, ignore_message='duplicate column'):
     # Add deleted bool column to Topic subscription table
     try:
         with db.engine.connect() as connection:
-            connection.execute(text("ALTER TABLE subscriptions ADD COLUMN deleted BOOLEAN DEFAULT 0 NOT NULL;"))
+            connection.execute(text(exec_text))
     except OperationalError as er:
-        if not er._message().find("duplicate column"):
+        if not er._message().find(ignore_message):
             app.logger.exception(er)
     except SQLAlchemyError as er:
         app.logger.exception(er)
@@ -483,8 +483,10 @@ def update_db(app, db):
 def generate_default_data(app: Flask, db):
     gen_default_indexes(app, db)
     create_default_data(app)
-    update_db(app, db)
-    
+    update_db(app, db, "ALTER TABLE subscriptions ADD COLUMN deleted BOOLEAN DEFAULT 0 NOT NULL;", "duplicate column")
+    # Add boolean column play_sound and str sound_filename to Alert Rule table
+    update_db(app, db, "ALTER TABLE alert_rule ADD COLUMN play_sound BOOLEAN DEFAULT 0 NOT NULL;", "duplicate column") 
+    update_db(app, db, "ALTER TABLE alert_rule ADD COLUMN sound_filename VARCHAR(255) DEFAULT NULL;", "duplicate column")
 
 
 # Subscribe to the list of tuples MQTT topics (mqtt_topic, qos_level)
@@ -511,62 +513,66 @@ def get_mqtt_subs_tuple(app: Flask, qos_level: int) -> list[tuple]:
 def init_mqtt(app: Flask) -> mqtt.Client:
 
     def on_connect(client, userdata, flags, rc):
-        # If we successfully connected to the MQTT server, subscribe to all topics
         if rc == 0:
             app.logger.info(mqtt.error_string(rc) + ' Successfully connected')
             subscribe_to_mqtt_topics(app, mqttc, get_mqtt_subs_tuple(app, 2))
         else:
             app.logger.info('MQTT could not connect!' + mqtt.error_string(rc))
 
-    # Log topics we have subscribed to
     def on_subscribe(client, userdata, mid, granted_qos):
-        app.logger.info(
-            f"Subscribe {str(userdata)} mid: {str(mid)} qos: {str(granted_qos)}"
-        )
+        app.logger.info(f"Subscribe {str(userdata)} mid: {str(mid)} qos: {str(granted_qos)}")
 
-    # Log topics we have unsubscribed to
     def on_unsubscribe(client, userdata, mid):
         app.logger.info(f"Unsubscribe {str(userdata)} mid: {str(mid)}")
 
     def on_message(client, userdata, msg):
         try:
             value = str(msg.payload.decode("utf-8"))
-
             with app.app_context():
-                topic_subscription = db.session.query(
-                    TopicSubscription).filter(
-                        TopicSubscription.address == msg.topic).filter(
-                            TopicSubscription.deleted == False).first()
-
+                topic_subscription = db.session.query(TopicSubscription).filter(
+                    TopicSubscription.address == msg.topic,
+                    TopicSubscription.deleted == False
+                ).first()
+                if not topic_subscription:
+                    return
                 server_timestamp = datetime.datetime.now(datetime.timezone.utc)
-                if topic_subscription.data_type == 'single':
-                    if store_single_mqtt_record(topic_subscription, value, server_timestamp):
-                        check_alerts_for_single_value(topic_subscription, value, server_timestamp)
-
-                elif topic_subscription.data_type == 'json':
-                    json_obj = ast.literal_eval(value)
-                    if store_json_mqtt_record(topic_subscription, json_obj):
-                        broadcast_json_data(value, topic_subscription.id, topic_subscription.address, str(server_timestamp))
-                        check_alerts_for_json_value(topic_subscription, json_obj, server_timestamp)
-                elif topic_subscription.data_type == 'csv':
-                    store_mqtt_record(topic_subscription,
-                                      value.splitlines()[0], server_timestamp)
-                elif topic_subscription.data_type == 'json_lab':
-                    # Get timestamp from json_lab object (messageID), if failed get the timestamp from server
-                    json_obj_datetime = get_datetime_from_json_lab(value, server_timestamp)
-                    if store_mqtt_record(topic_subscription, value, json_obj_datetime):
-                        broadcast_json_lab_data(value, topic_subscription.address,
-                                            str(json_obj_datetime),
-                                            topic_subscription.id)
-                        check_alerts_for_json_lab(topic_subscription, value, json_obj_datetime)
-                else:
-                    app.logger.warning('unknown data type')
+                handle_topic_subscription(topic_subscription, value, server_timestamp)
         except Exception as e:
             app.logger.exception("Exception on_message!")
             app.logger.exception(e)
 
+    def handle_topic_subscription(topic_subscription, value, server_timestamp):
+        data_type = topic_subscription.data_type
+        if data_type == 'single':
+            handle_single_value(topic_subscription, value, server_timestamp)
+        elif data_type == 'json':
+            handle_json_value(topic_subscription, value, server_timestamp)
+        elif data_type == 'csv':
+            handle_csv_value(topic_subscription, value, server_timestamp)
+        elif data_type == 'json_lab':
+            handle_json_lab_value(topic_subscription, value, server_timestamp)
+        else:
+            app.logger.warning('unknown data type')
 
-    # Flask spawns two instances while running on Debug Mode. MQTT needs to have ONLY ONE instance to work properly.
+    def handle_single_value(topic_subscription, value, server_timestamp):
+        if store_single_mqtt_record(topic_subscription, value, server_timestamp):
+            check_alerts_for_single_value(topic_subscription, value, server_timestamp)
+
+    def handle_json_value(topic_subscription, value, server_timestamp):
+        json_obj = ast.literal_eval(value)
+        if store_json_mqtt_record(topic_subscription, json_obj):
+            broadcast_json_data(value, topic_subscription.id, topic_subscription.address, str(server_timestamp))
+            check_alerts_for_json_value(topic_subscription, json_obj, server_timestamp)
+
+    def handle_csv_value(topic_subscription, value, server_timestamp):
+        store_mqtt_record(topic_subscription, value.splitlines()[0], server_timestamp)
+
+    def handle_json_lab_value(topic_subscription, value, server_timestamp):
+        json_obj_datetime = get_datetime_from_json_lab(value, server_timestamp)
+        if store_mqtt_record(topic_subscription, value, json_obj_datetime):
+            broadcast_json_lab_data(value, topic_subscription.address, str(json_obj_datetime), topic_subscription.id)
+            check_alerts_for_json_lab(topic_subscription, value, json_obj_datetime)
+
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         app.logger.info('Starting MQTT...')
         mqttc.on_connect = on_connect
@@ -579,7 +585,7 @@ def init_mqtt(app: Flask) -> mqtt.Client:
             app.logger.info('MQTT started!')
         else:
             app.logger.info('MQTT testing started!')
-    #####################
+
     return mqttc
 
 def check_alerts_for_json_lab(topic_subscription, value, json_obj_datetime):
@@ -848,7 +854,8 @@ def broadcast_notification_socketio(notification: NotificationLog):
         'url': url,
         'notification_alert': str(notification_alert),
         'rule_id': str(f'#{str(notification.alert_rule.id)}'),
-        'topic_id': notification.alert_rule.topic_id
+        'topic_id': notification.alert_rule.topic_id,
+        'sound': notification.alert_rule.sound_filename
     })
 
 

@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+<audio id="audio" src="" type="audio/mpeg"></audio>
 <form class="form-inline" method='post' action='{{url_for("main_blueprint.edit_rule", id=rule.id )}}'>
     <div class="form-group">
         <label for='address' >Address: </label>
@@ -25,6 +26,25 @@
       <input id='active' type='checkbox' name='active'>
     {% endif %}
   </div>
+  <div class='form-group'>
+    <label for="play_sound">Play sound: </label>
+    {% if rule.play_sound %}
+    <input id='play_sound' type='checkbox' name='play_sound' checked>
+    {% else %}
+    <input id='play_sound' type='checkbox' name='play_sound'>
+    {% endif %}
+    <select name="select_sound" id="select_sound">
+        {% for s in sounds %}
+        {% set sound_url = url_for('static', filename='sounds/' + s) %}
+          {% if rule.sound_filename == sound_url %}
+          <option data-id="{{ s }}" data-columns="{{ sound_url }}" value="{{ sound_url }}" selected>{{ s }}</option>
+          {% else %}
+          <option data-id="{{ s }}" data-columns="{{ sound_url }}" value="{{ sound_url }}">{{ s }}</option>
+          {% endif %}
+        {% endfor %}
+    </select>
+    <input type="button" id="play" value="Play">
+</div>
   <div class='form-group'>
     <label for='raised' >Raised: </label>
     {% if rule.raised %}
@@ -87,4 +107,30 @@
       <a class='btn-sm btn-danger px-2' href="{{ url_for('main_blueprint.delete_rule', id=rule.id) }}">DELETE</a>
     </div>
 </form>
+<script>
+    const playBtn = document.getElementById('play');
+    const selectSound = document.getElementById('select_sound');
+    const audio = document.getElementById('audio');
+    
+    playBtn.addEventListener('click', () => {
+        if (!audio.paused) {
+            audio.pause();
+            playBtn.value = 'Play';
+        } else {
+            audio.src = selectSound.value;
+            playBtn.value = 'Stop...';
+            audio.play();
+        }
+    });
+    
+    audio.addEventListener('ended', () => {
+        playBtn.value = 'Play';
+    });
+
+    selectSound.addEventListener('change', () => {
+        audio.pause();
+        playBtn.value = 'Play';
+        audio.src = selectSound.value;
+    });
+</script>
 {% endblock %}

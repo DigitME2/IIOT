@@ -14,6 +14,8 @@
         <th>Address</th>
         <th>Rule</th>
         <th>Active</th>
+        <th>Play Sound</th>
+        <th>Sound</th>
         <th>Notify by email</th>
         <th>Email</th>
         <th title="Waits a number of seconds before sending another email.">Email cooldown</th>
@@ -34,7 +36,9 @@
         {% else %}
         <td>{{ a.column or 'value'}}{{ a.rule }}{{ a.rule_value}}</td>
         {% endif %}
-        <td>{{ a.active }}</td>        
+        <td>{{ a.active }}</td>     
+        <td>{{ a.play_sound }}</td>
+        <td>{{ a.sound_filename }}</td>   
         <td>{{ a.notify_by_email }}</td>        
         <td>{{ a.email or '' }}</td>        
         <td>{{ a.email_cooldown }}</td>

@@ -56,6 +56,7 @@ class TopicSubscription(db.Model):
     columns: str
     high_freq: bool
     deleted: bool
+    # last_received: str
 
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(), unique=False)
@@ -70,9 +71,10 @@ class TopicSubscription(db.Model):
     columns = db.Column(db.Text, nullable=True)
     high_freq = db.Column(db.Boolean, nullable=False, default=False)
     deleted = db.Column(db.Boolean, nullable=False, default=False)
+    # last_received = db.Column(db.DateTime, default=False, nullable=True)
 
     def __repr__(self):
-        return f"#{self.id} address: {self.address} subscribing: {self.subscribe} graph: {self.graph} data type: {self.data_type} columns: {self.columns} high_freq: {self.high_freq} deleted: {self.deleted} created: {self.created_on} updated: {self.updated_on}"
+        return f"#{self.id} address: {self.address} subscribing: {self.subscribe} graph: {self.graph} data type: {self.data_type} columns: {self.columns} high_freq: {self.high_freq} deleted: {self.deleted} created: {self.created_on} updated: {self.updated_on} last received: {self.last_received}"
 
     def to_dict(self):
         return dict(
@@ -86,6 +88,7 @@ class TopicSubscription(db.Model):
             deleted=self.deleted,
             created_on=self.created_on.isoformat(),
             updated_on=self.updated_on.isoformat(),
+            # last_received=self.last_received.isoformat() if self.last_received else None,
         )
 
 
@@ -126,7 +129,6 @@ class Mqtt(db.Model):
             created_on=self.created_on.isoformat(),
             updated_on=self.updated_on.isoformat(),
         )
-
 
 @dataclass
 class NotificationLog(db.Model):
@@ -229,6 +231,9 @@ class AlertRule(db.Model):
     created_on: str
     updated_on: str
 
+    play_sound: bool
+    sound_filename: str
+
     id = db.Column(db.Integer, primary_key=True)
     rule = db.Column(db.String())
     rule_value = db.Column(db.Float, nullable=False, default=0.0)
@@ -255,6 +260,9 @@ class AlertRule(db.Model):
         db.DateTime, server_default=db.func.now(), onupdate=db.func.now()
     )
 
+    play_sound = db.Column(db.Boolean(), default=False)
+    sound_filename = db.Column(db.String(), nullable=True, default=None)
+
     def __repr__(self):
         return f"#{self.id} active: {self.active} column: {self.column} rule: {self.rule} value: {self.rule_value} subscribing: {self.address} notify by email: {self.notify_by_email}"
 
@@ -277,6 +285,8 @@ class AlertRule(db.Model):
             func_time_n=self.func_time_n,
             created_on=self.created_on.isoformat(),
             updated_on=self.updated_on.isoformat(),
+            play_sound=self.play_sound,
+            sound_filename=self.sound_filename,
         )
 
 

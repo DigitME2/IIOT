@@ -256,11 +256,14 @@ def add_rule():
         func = request.form.get("func") or None
         func_time = request.form.get("func_time") or None
         func_time_n = request.form.get("func_time_n") or None
+        play_sound = request.form.get("play_sound") or 0
+        sound = request.form.get("select_sound") or None
 
         func_time = bool(func_time or func_time == "1")
         func_checked = bool(func_checked)
         active = bool(active)
         notify_by_email = bool(notify_by_email)
+        play_sound = bool(play_sound)
 
         if rule is None:
             flash(f"Missing rule!")
@@ -304,6 +307,8 @@ def add_rule():
             func=func,
             func_time=func_time,
             func_time_n=func_time_n,
+            play_sound=play_sound,
+            sound_filename=sound
         )
 
         old_alert_rule = AlertRule.query.filter(
@@ -330,6 +335,9 @@ def add_rule():
         comp_operators = AlertCompOperators.query.all()
         alert_functions = AlertFunctions.query.all()
         rules = AlertRule.query.all()
+        
+        # Get all the sounds in the static/sounds folder that have extension .mp3, .wav, .ogg, .flac
+        sounds = [sound for sound in os.listdir(os.path.join(current_app.root_path, "static/sounds")) if sound.endswith((".mp3", ".wav", ".ogg", ".flac"))]
 
     return render_template(
         "alerts/rules/addRule.html",
@@ -338,6 +346,7 @@ def add_rule():
         rules=rules,
         alert_functions=alert_functions,
         comp_operators=comp_operators,
+        sounds=sounds,
     )
 
 
@@ -346,6 +355,8 @@ def edit_rule(id=-1):
     comp_operators = AlertCompOperators.query.all()
     alert_functions = AlertFunctions.query.all()
     rule = AlertRule.query.filter_by(id=id).first()
+    sounds = [sound for sound in os.listdir(os.path.join(current_app.root_path, "static/sounds")) if sound.endswith((".mp3", ".wav", ".ogg", ".flac"))]
+
     if request.method == "POST":
         if rule:
             active = request.form.get("active") or 0
@@ -355,10 +366,13 @@ def edit_rule(id=-1):
             email_cooldown = request.form.get("email_cooldown") or 0
             r = request.form.get("select_comp_operators") or None
             rule_value = request.form.get("rule_value") or None
+            play_sound = request.form.get("play_sound") or 0
+            sound = request.form.get("select_sound") or None
 
             active = bool(active)
             notify_by_email = bool(notify_by_email)
             raised = bool(raised)
+            play_sound = bool(play_sound)
 
             rule.active = active
             rule.notify_by_email = notify_by_email
@@ -367,6 +381,8 @@ def edit_rule(id=-1):
             rule.email = email
             rule.email_cooldown = email_cooldown
             rule.raised = raised
+            rule.play_sound = play_sound
+            rule.sound_filename = sound
 
             db.session.merge(rule)
             db.session.commit()
@@ -384,6 +400,7 @@ def edit_rule(id=-1):
         rule=rule,
         comp_operators=comp_operators,
         alert_functions=alert_functions,
+        sounds=sounds,
     )
 
 

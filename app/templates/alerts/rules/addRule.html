@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
 {% if subs %}
+<audio id="audio" src="" type="audio/mpeg"></audio>
 <form class="form-inline" method='post' action='{{url_for("main_blueprint.add_rule")}}'>
     <div class="form-group">
         <label for='address'>Address: </label>
@@ -21,6 +22,17 @@
     <div class='form-group'>
         <label for='active'>Active: </label>
         <input id='active' type='checkbox' name='active'>
+    </div>
+    <div class='form-group'>
+        <label for="play_sound">Play sound: </label>
+        <input id='play_sound' type='checkbox' name='play_sound'>
+        <select name="select_sound" id="select_sound">
+            {% for s in sounds %}
+            {% set sound_url = url_for('static', filename='sounds/' + s) %}
+            <option data-id="{{ s }}" data-columns="{{ s }}" value="{{ sound_url }}">{{ s }}</option>
+            {% endfor %}
+        </select>
+        <input type="button" id="play" value="Play">
     </div>
     <div class='form-group'>
         <label for='notify_by_email'>Notify by email: </label>
@@ -65,6 +77,31 @@
     {% endif %}
 </form>
 <script>
+    const playBtn = document.getElementById('play');
+    const selectSound = document.getElementById('select_sound');
+    const audio = document.getElementById('audio');
+    
+    playBtn.addEventListener('click', () => {
+        if (!audio.paused) {
+            audio.pause();
+            playBtn.value = 'Play';
+        } else {
+            audio.src = selectSound.value;
+            playBtn.value = 'Stop...';
+            audio.play();
+        }
+    });
+    
+    audio.addEventListener('ended', () => {
+        playBtn.value = 'Play';
+    });
+
+    selectSound.addEventListener('change', () => {
+        audio.pause();
+        playBtn.value = 'Play';
+        audio.src = selectSound.value;
+    });
+
     $(document).ready(function () {
         $('#select_topic_options').change()
         $('#checkbox_fn').change()
