@@ -43,6 +43,7 @@
           <th id="thead_data_type">Data type</th>
           <th id="thead_date_added">Date Added</th>
           <th id="thead_udated_on">Updated On</th>
+          <th id="thead_last_received">Last Received</th>
           <th id="thead_logs">Logs</th>
           <th id="thead_action">Action</th>
         </tr>
@@ -69,6 +70,12 @@
           <td class="sub_data_type">{{ sub.data_type }} </td>
           <td class="sub_created_on">{{ sub.created_on }}</td>
           <td class="sub_updated_on">{{ sub.updated_on }}</td>
+          {% if sub.last_received == None %}
+          <td class="sub_last_received">{{ "N/A" }}</td>
+          {% else %}
+          <td class="sub_last_received">{{ sub.last_received }} ({{ sub.last_received|time_ago }})</td>
+          {% endif %}
+        
           <td><a class="sub_view_logs" href="{{ url_for('main_blueprint.get_sub_mqtt_logs', id=sub.id) }}">View logs</a></td>
           <td class="sub_actions">
             <a class="sub_action_edit_sub" href="{{ url_for('main_blueprint.edit_sub', id=sub.id) }}">Edit</a>
@@ -118,7 +125,7 @@
 
     let sub_created_on = document.querySelectorAll('.sub_created_on')
     let sub_updated_on = document.querySelectorAll('.sub_updated_on')
-
+    let sub_last_received = document.querySelectorAll('.sub_last_received')
 
     function convertUTCToLocal(timestamp) {
       // Check if there is 'Z' at the end, if not add it
@@ -137,6 +144,15 @@
 
    sub_updated_on.forEach(function (item) {
       item.innerHTML = convertUTCToLocal(item.innerHTML)
+   })
+
+   sub_last_received.forEach(function (item) {
+      if (item.innerHTML.includes('N/A')) {
+        return
+      }
+      date_time = item.innerHTML.split(' (')[0]
+      time_ago = item.innerHTML.split(' (')[1]
+      item.innerHTML = convertUTCToLocal(date_time) + ' (' + time_ago
    })
 
     $('#address').on('input', function () {

@@ -469,7 +469,7 @@ def get_all_subs():
                                          data_type=data_type,
                                          columns=columns)
         subscription.graph = True
-
+        subscription.last_received = datetime.datetime.utcnow()
         # Validate address
         if address is None or len(address) <= 1:
             flash("Topic address is too short!", "warning")
@@ -493,6 +493,9 @@ def get_all_subs():
 
         try:
             db.session.add(subscription)
+            db.session.commit()
+            subscription.last_received = None
+            db.session.merge(subscription)
             db.session.commit()
         except Exception as e:
             current_app.logger.exception(e)
@@ -793,21 +796,47 @@ def get_topics():
                            subs=subs,
                            title="MQTT Data")
 
-
 @main_blueprint.route("/topics/delete", methods=["POST"])
 def delete_topic():
+    # Get the list of topic IDs to delete from the form data
     topic_ids = request.form.getlist("topic_id")
+    
+    # Initialize lists to store deleted topics and unique parent topic IDs
     deleted_topics = []
+    unique_parent_topic_ids = set()
+    
+    # Loop through each topic ID and delete the corresponding MQTT object
     for id in topic_ids:
         topic = Mqtt.query.filter_by(id=id).first()
         if topic:
+            # Add the parent topic ID to the list of unique parent topic IDs if it doesn't exist
+            unique_parent_topic_ids.add(topic.topic_id)
+
+            
+            # Delete the MQTT object and add its ID to the list of deleted topics
             db.session.delete(topic)
             db.session.commit()
             deleted_topics.append(topic.id)
         else:
+            # If the topic ID doesn't correspond to a valid MQTT object, display an error message
             flash(f"Topic with ID {id} was not found in the database and could not be deleted.", "error")
+    
+    # Update the last received value for each unique parent topic subscription
+    for parent_topic_id in unique_parent_topic_ids:
+        topic_sub = TopicSubscription.query.filter_by(id=parent_topic_id).first()
+        if topic_sub:
+            # Get the most recent MQTT object for the parent topic and update the last received date for the topic subscription
+            last_topic = Mqtt.query.filter_by(topic_id=parent_topic_id).order_by(Mqtt.id.desc()).first()
+            if last_topic:
+                topic_sub.last_received = last_topic.timestamp
+                db.session.merge(topic_sub)
+                db.session.commit()
+    
+    # If any topics were deleted, display a success message
     if deleted_topics:
         flash(f"The following topics have been deleted: {deleted_topics}", "success")
+    
+    # Redirect the user to the topics page
     return redirect(url_for("main_blueprint.get_topics"))
 
 

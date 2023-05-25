@@ -80,7 +80,12 @@ def bulk_save_scheduler() -> bool:
         return False
     with timerBulkSave.sched.app.app_context():
         db.session.bulk_save_objects(timerBulkSave.mqtt_objects)
+        # Update the last received timestamp of the topic by getting the last record from the mqtt_objects
+        topic = TopicSubscription.query.filter_by(id=timerBulkSave.mqtt_objects[-1].topic_id).first()
+        topic.last_received = timerBulkSave.mqtt_objects[-1].timestamp
+        db.session.merge(topic)
         db.session.commit()
+
         timerBulkSave.mqtt_objects.clear()
         return True
 
@@ -98,6 +103,9 @@ def store_mqtt_record(topic: TopicSubscription, value: str,
             start_database_save_scheduler(timerBulkSave)
             timerBulkSave.mqtt_objects.append(mqtt_record)
         else:
+            topic.last_received = timestamp
+            db.session.merge(topic)
+
             db.session.add(mqtt_record)
             db.session.commit()
         return True
@@ -327,6 +335,9 @@ def init_app(config=None) -> Flask:
     else:
         app.config.from_object(config)
 
+    # Add time_ago filter to jinja2 template engine
+    app.jinja_env.filters['time_ago'] = time_ago
+
     # If we want to measure how much time it takes to process a request we can set
     # the option PRINT_REQUEST_PROCESS_TIME to true
     if app.config.get('PRINT_REQUEST_PROCESS_TIME'):
@@ -487,6 +498,8 @@ def generate_default_data(app: Flask, db):
     # Add boolean column play_sound and str sound_filename to Alert Rule table
     update_db(app, db, "ALTER TABLE alert_rule ADD COLUMN play_sound BOOLEAN DEFAULT 0 NOT NULL;", "duplicate column") 
     update_db(app, db, "ALTER TABLE alert_rule ADD COLUMN sound_filename VARCHAR(255) DEFAULT NULL;", "duplicate column")
+    # Add last_received column to Topic Subscription table: last_received = db.Column(db.DateTime, default=False, nullable=True)
+    update_db(app, db, "ALTER TABLE subscriptions ADD COLUMN last_received DATETIME DEFAULT NULL;", "duplicate column")
 
 
 # Subscribe to the list of tuples MQTT topics (mqtt_topic, qos_level)

@@ -76,3 +76,17 @@ class TimerCounter:
     last_mqtt_timestamp: datetime.datetime
     every_seconds: float
     counter: int
+
+
+def time_ago(dt):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    dt = set_tz_utc_if_none(dt)
+    diff = now - dt
+    if diff.days > 0:
+        return f"{diff.days} days ago"
+    elif diff.seconds > 3600:
+        return f"{diff.seconds // 3600} hours ago"
+    elif diff.seconds > 60:
+        return f"{diff.seconds // 60} minutes ago"
+    else:
+        return f"{diff.seconds} seconds ago"

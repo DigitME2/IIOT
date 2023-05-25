@@ -56,7 +56,7 @@ class TopicSubscription(db.Model):
     columns: str
     high_freq: bool
     deleted: bool
-    # last_received: str
+    last_received: str
 
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(), unique=False)
@@ -71,7 +71,7 @@ class TopicSubscription(db.Model):
     columns = db.Column(db.Text, nullable=True)
     high_freq = db.Column(db.Boolean, nullable=False, default=False)
     deleted = db.Column(db.Boolean, nullable=False, default=False)
-    # last_received = db.Column(db.DateTime, default=False, nullable=True)
+    last_received = db.Column(db.DateTime, default=False, nullable=True)
 
     def __repr__(self):
         return f"#{self.id} address: {self.address} subscribing: {self.subscribe} graph: {self.graph} data type: {self.data_type} columns: {self.columns} high_freq: {self.high_freq} deleted: {self.deleted} created: {self.created_on} updated: {self.updated_on} last received: {self.last_received}"
@@ -88,7 +88,7 @@ class TopicSubscription(db.Model):
             deleted=self.deleted,
             created_on=self.created_on.isoformat(),
             updated_on=self.updated_on.isoformat(),
-            # last_received=self.last_received.isoformat() if self.last_received else None,
+            last_received=self.last_received.isoformat() if self.last_received else None,
         )
 
 
